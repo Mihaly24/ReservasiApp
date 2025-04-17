@@ -21,7 +21,7 @@ namespace Project
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
+            LoadData();
         }
 
         private void ClearForm()
@@ -32,6 +32,31 @@ namespace Project
             txtAlamat.Clear();
             txtNama.Focus();
         }
+
+        private void LoadData()
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT pelanggan_id AS [ID], nama AS [Nama], email AS [Email], no_telp AS [No Telepon], alamat AS [Alamat] FROM Pelanggan";
+                    SqlDataAdapter da = new SqlDataAdapter(query, conn);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+
+                    dgvPelanggan.AutoGenerateColumns = true;
+                    dgvPelanggan.DataSource = dt;
+
+                    ClearForm();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Terjadi kesalahan: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
 
         private void label1_Click(object sender, EventArgs e)
         {

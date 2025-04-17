@@ -36,12 +36,12 @@
             this.txtEmail = new System.Windows.Forms.TextBox();
             this.txtNoTelp = new System.Windows.Forms.TextBox();
             this.txtAlamat = new System.Windows.Forms.TextBox();
-            this.dataGridView1 = new System.Windows.Forms.DataGridView();
+            this.dgvPelanggan = new System.Windows.Forms.DataGridView();
             this.btnTambah = new System.Windows.Forms.Button();
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnHapus = new System.Windows.Forms.Button();
             this.btnClear = new System.Windows.Forms.Button();
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvPelanggan)).BeginInit();
             this.SuspendLayout();
             // 
             // Nama
@@ -109,15 +109,15 @@
             this.txtAlamat.Size = new System.Drawing.Size(454, 22);
             this.txtAlamat.TabIndex = 7;
             // 
-            // dataGridView1
+            // dgvPelanggan
             // 
-            this.dataGridView1.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView1.Location = new System.Drawing.Point(12, 238);
-            this.dataGridView1.Name = "dataGridView1";
-            this.dataGridView1.RowHeadersWidth = 51;
-            this.dataGridView1.RowTemplate.Height = 24;
-            this.dataGridView1.Size = new System.Drawing.Size(776, 200);
-            this.dataGridView1.TabIndex = 8;
+            this.dgvPelanggan.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvPelanggan.Location = new System.Drawing.Point(12, 238);
+            this.dgvPelanggan.Name = "dgvPelanggan";
+            this.dgvPelanggan.RowHeadersWidth = 51;
+            this.dgvPelanggan.RowTemplate.Height = 24;
+            this.dgvPelanggan.Size = new System.Drawing.Size(776, 200);
+            this.dgvPelanggan.TabIndex = 8;
             // 
             // btnTambah
             // 
@@ -164,7 +164,7 @@
             this.Controls.Add(this.btnHapus);
             this.Controls.Add(this.btnUpdate);
             this.Controls.Add(this.btnTambah);
-            this.Controls.Add(this.dataGridView1);
+            this.Controls.Add(this.dgvPelanggan);
             this.Controls.Add(this.txtAlamat);
             this.Controls.Add(this.txtNoTelp);
             this.Controls.Add(this.txtEmail);
@@ -176,7 +176,7 @@
             this.Name = "Form1";
             this.Text = "Form1";
             this.Load += new System.EventHandler(this.Form1_Load);
-            ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvPelanggan)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -192,7 +192,7 @@
         private System.Windows.Forms.TextBox txtEmail;
         private System.Windows.Forms.TextBox txtNoTelp;
         private System.Windows.Forms.TextBox txtAlamat;
-        private System.Windows.Forms.DataGridView dataGridView1;
+        private System.Windows.Forms.DataGridView dgvPelanggan;
         private System.Windows.Forms.Button btnTambah;
         private System.Windows.Forms.Button btnUpdate;
         private System.Windows.Forms.Button btnHapus;
