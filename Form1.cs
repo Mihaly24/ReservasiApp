@@ -24,6 +24,15 @@ namespace Project
             
         }
 
+        private void ClearForm()
+        {
+            txtNama.Clear();
+            txtEmail.Clear();
+            txtNoTelp.Clear();
+            txtAlamat.Clear();
+            txtNama.Focus();
+        }
+
         private void label1_Click(object sender, EventArgs e)
         {
 
