@@ -1,6 +1,6 @@
 ﻿namespace Project
 {
-    partial class Form1
+    partial class Pelanggan
     {
         /// <summary>
         /// Required designer variable.
@@ -40,7 +40,7 @@
             this.btnTambah = new System.Windows.Forms.Button();
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnHapus = new System.Windows.Forms.Button();
-            this.btnClear = new System.Windows.Forms.Button();
+            this.btnRefresh = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgvPelanggan)).BeginInit();
             this.SuspendLayout();
             // 
@@ -127,15 +127,17 @@
             this.btnTambah.TabIndex = 9;
             this.btnTambah.Text = "Add";
             this.btnTambah.UseVisualStyleBackColor = true;
+            this.btnTambah.Click += new System.EventHandler(this.BtnTambah_Click);
             // 
             // btnUpdate
             // 
-            this.btnUpdate.Location = new System.Drawing.Point(262, 200);
+            this.btnUpdate.Location = new System.Drawing.Point(258, 200);
             this.btnUpdate.Name = "btnUpdate";
             this.btnUpdate.Size = new System.Drawing.Size(78, 23);
             this.btnUpdate.TabIndex = 10;
             this.btnUpdate.Text = "Update";
             this.btnUpdate.UseVisualStyleBackColor = true;
+            this.btnUpdate.Click += new System.EventHandler(this.BtnUpdate_Click);
             // 
             // btnHapus
             // 
@@ -145,22 +147,24 @@
             this.btnHapus.TabIndex = 11;
             this.btnHapus.Text = "Delete";
             this.btnHapus.UseVisualStyleBackColor = true;
+            this.btnHapus.Click += new System.EventHandler(this.BtnHapus_Click);
             // 
-            // btnClear
+            // btnRefresh
             // 
-            this.btnClear.Location = new System.Drawing.Point(614, 198);
-            this.btnClear.Name = "btnClear";
-            this.btnClear.Size = new System.Drawing.Size(94, 26);
-            this.btnClear.TabIndex = 12;
-            this.btnClear.Text = "Clear";
-            this.btnClear.UseVisualStyleBackColor = true;
+            this.btnRefresh.Location = new System.Drawing.Point(614, 198);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(94, 26);
+            this.btnRefresh.TabIndex = 12;
+            this.btnRefresh.Text = "Refresh";
+            this.btnRefresh.UseVisualStyleBackColor = true;
+            this.btnRefresh.Click += new System.EventHandler(this.BtnRefresh_Click);
             // 
-            // Form1
+            // Pelanggan
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Controls.Add(this.btnClear);
+            this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btnHapus);
             this.Controls.Add(this.btnUpdate);
             this.Controls.Add(this.btnTambah);
@@ -173,8 +177,8 @@
             this.Controls.Add(this.NoTelp);
             this.Controls.Add(this.Email);
             this.Controls.Add(this.Nama);
-            this.Name = "Form1";
-            this.Text = "Form1";
+            this.Name = "Pelanggan";
+            this.Text = "Pelanggan";
             this.Load += new System.EventHandler(this.Form1_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dgvPelanggan)).EndInit();
             this.ResumeLayout(false);
@@ -196,7 +200,7 @@
         private System.Windows.Forms.Button btnTambah;
         private System.Windows.Forms.Button btnUpdate;
         private System.Windows.Forms.Button btnHapus;
-        private System.Windows.Forms.Button btnClear;
+        private System.Windows.Forms.Button btnRefresh;
     }
 }
 
