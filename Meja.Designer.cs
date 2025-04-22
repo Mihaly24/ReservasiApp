@@ -50,7 +50,7 @@
             "Tidak Tersedia"});
             this.cmbStatusMeja.Location = new System.Drawing.Point(173, 130);
             this.cmbStatusMeja.Name = "cmbStatusMeja";
-            this.cmbStatusMeja.Size = new System.Drawing.Size(111, 24);
+            this.cmbStatusMeja.Size = new System.Drawing.Size(169, 24);
             this.cmbStatusMeja.TabIndex = 0;
             // 
             // label1

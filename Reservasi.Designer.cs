@@ -140,7 +140,7 @@
             this.dgvReservasi.Name = "dgvReservasi";
             this.dgvReservasi.RowHeadersWidth = 51;
             this.dgvReservasi.RowTemplate.Height = 24;
-            this.dgvReservasi.Size = new System.Drawing.Size(776, 174);
+            this.dgvReservasi.Size = new System.Drawing.Size(859, 174);
             this.dgvReservasi.TabIndex = 10;
             // 
             // btnAdd
@@ -187,7 +187,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(883, 450);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btnDelete);
             this.Controls.Add(this.btnUpdate);

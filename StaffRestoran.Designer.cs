@@ -163,7 +163,7 @@
             this.dgvStaff.Name = "dgvStaff";
             this.dgvStaff.RowHeadersWidth = 51;
             this.dgvStaff.RowTemplate.Height = 24;
-            this.dgvStaff.Size = new System.Drawing.Size(1027, 199);
+            this.dgvStaff.Size = new System.Drawing.Size(934, 199);
             this.dgvStaff.TabIndex = 13;
             // 
             // btnRefresh
@@ -180,7 +180,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1051, 450);
+            this.ClientSize = new System.Drawing.Size(958, 450);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.dgvStaff);
             this.Controls.Add(this.btnDelete);
