@@ -27,12 +27,14 @@ namespace Project
             dgvPelanggan.AllowUserToAddRows = false;
             dgvPelanggan.AllowUserToDeleteRows = false;
             dgvPelanggan.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+
+            // Add the event handler here instead of in Form1_Load
+            dgvPelanggan.SelectionChanged += DgvPelanggan_SelectionChanged;
         }
 
         private void Form1_Load(object sender, EventArgs e)
         {
             LoadData();
-            dgvPelanggan.SelectionChanged += DgvPelanggan_SelectionChanged;
         }
 
         private void DgvPelanggan_SelectionChanged(object sender, EventArgs e)
@@ -70,6 +72,13 @@ namespace Project
                     da.Fill(dt);
 
                     dgvPelanggan.DataSource = dt;
+
+                    // Select first row if available
+                    if (dgvPelanggan.Rows.Count > 0)
+                    {
+                        dgvPelanggan.ClearSelection();
+                        dgvPelanggan.Rows[0].Selected = true;
+                    }
                 }
                 catch (Exception ex)
                 {

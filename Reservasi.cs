@@ -27,6 +27,7 @@ namespace Project
 
             // Add event handlers
             this.Load += Reservasi_Load;
+            dgvReservasi.CellClick += DgvReservasi_CellClick;
         }
 
         private void Reservasi_Load(object sender, EventArgs e)
@@ -52,88 +53,93 @@ namespace Project
 
         private void LoadPelanggan()
         {
-            try
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                conn.Open();
-                string query = "SELECT pelanggan_id, nama FROM Pelanggan";
-                SqlCommand cmd = new SqlCommand(query, conn);
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT pelanggan_id, nama FROM Pelanggan";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
 
-                cmbPelangganID.DataSource = dt;
-                cmbPelangganID.DisplayMember = "nama";
-                cmbPelangganID.ValueMember = "pelanggan_id";
-                cmbPelangganID.SelectedIndex = -1;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error loading customers: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                conn.Close();
+                    cmbPelangganID.DataSource = dt;
+                    cmbPelangganID.DisplayMember = "nama";
+                    cmbPelangganID.ValueMember = "pelanggan_id";
+                    cmbPelangganID.SelectedIndex = -1;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading customers: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+                finally
+                {
+                    conn.Close();
+                }
             }
         }
 
         private void LoadMeja()
         {
-            try
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                conn.Open();
-                string query = "SELECT meja_id, nomor_meja FROM Meja WHERE status_meja = 'Available'";
-                SqlCommand cmd = new SqlCommand(query, conn);
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
+                try
+                {
+                    conn.Open();
+                    string query = "SELECT meja_id, nomor_meja FROM Meja WHERE status_meja = 'Tersedia'";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
 
-                cmbMejaID.DataSource = dt;
-                cmbMejaID.DisplayMember = "nomor_meja";
-                cmbMejaID.ValueMember = "meja_id";
-                cmbMejaID.SelectedIndex = -1;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error loading tables: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                conn.Close();
+                    cmbMejaID.DataSource = dt;
+                    cmbMejaID.DisplayMember = "nomor_meja";
+                    cmbMejaID.ValueMember = "meja_id";
+                    cmbMejaID.SelectedIndex = -1;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading tables: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                finally
+                {
+                    conn.Close();
+                }
             }
         }
 
         private void LoadReservasi()
         {
-            try
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                conn.Open();
-                string query = @"SELECT r.reservasi_id, p.nama AS Pelanggan, m.nomor_meja AS Meja, 
-                               r.tanggal, r.waktu, r.status_reservasi 
-                               FROM Reservasi r
-                               LEFT JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
-                               LEFT JOIN Meja m ON r.meja_id = m.meja_id
-                               ORDER BY r.tanggal DESC, r.waktu DESC";
-                SqlCommand cmd = new SqlCommand(query, conn);
-                SqlDataAdapter adapter = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                adapter.Fill(dt);
+                try
+                {
+                    conn.Open();
+                    string query = @"SELECT r.reservasi_id, p.nama AS Pelanggan, m.nomor_meja AS Meja, 
+                       r.tanggal, 
+                       CONVERT(VARCHAR(5), r.waktu, 108) AS waktu_formatted, -- Convert TIME to string (HH:mm)
+                       r.status_reservasi 
+                       FROM Reservasi r
+                       LEFT JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
+                       LEFT JOIN Meja m ON r.meja_id = m.meja_id
+                       ORDER BY r.tanggal DESC, r.waktu DESC";
+                    SqlCommand cmd = new SqlCommand(query, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    adapter.Fill(dt);
 
-                dgvReservasi.DataSource = dt;
+                    dgvReservasi.DataSource = dt;
 
-                // Format the date and time columns
-                if (dgvReservasi.Columns["tanggal"] != null)
-                    dgvReservasi.Columns["tanggal"].DefaultCellStyle.Format = "dd/MM/yyyy";
-
-                if (dgvReservasi.Columns["waktu"] != null)
-                    dgvReservasi.Columns["waktu"].DefaultCellStyle.Format = "HH:mm";
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error loading reservations: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                conn.Close();
+                    // Hide the original "waktu" column if it still exists
+                    if (dgvReservasi.Columns["waktu"] != null)
+                        dgvReservasi.Columns["waktu"].Visible = false;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error loading reservations: " + ex.Message);
+                }
             }
         }
 
@@ -164,7 +170,7 @@ namespace Project
                 // Update table status if reservation is confirmed
                 if (cmbStatus.Text == "Confirmed")
                 {
-                    UpdateTableStatus((int)cmbMejaID.SelectedValue, "Reserved");
+                    UpdateTableStatus((int)cmbMejaID.SelectedValue, "Tidak Tersedia"); // ✅ Correct
                 }
 
                 ClearForm();
@@ -246,12 +252,11 @@ namespace Project
                 // If status changed to Confirmed, set the new table to Reserved
                 if (newStatus == "Confirmed")
                 {
-                    UpdateTableStatus(newMejaId, "Reserved");
+                    UpdateTableStatus(newMejaId, "Tidak Tersedia"); // ✅ Correct
                 }
-                // If status changed from Confirmed to Pending, set the table to Available
                 else if (currentStatus == "Confirmed" && newStatus == "Pending")
                 {
-                    UpdateTableStatus(newMejaId, "Available");
+                    UpdateTableStatus(newMejaId, "Tersedia"); // ✅ Correct
                 }
 
                 ClearForm();
@@ -307,7 +312,7 @@ namespace Project
                     // If the reservation was confirmed, set the table back to Available
                     if (mejaId > 0 && status == "Confirmed")
                     {
-                        UpdateTableStatus(mejaId, "Available");
+                        UpdateTableStatus(mejaId, "Tersedia"); // ✅ Correct
                     }
 
                     MessageBox.Show("Reservation deleted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -337,14 +342,16 @@ namespace Project
 
         private void DgvReservasi_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0)
+            if (e.RowIndex < 0) return;
+
+            try
             {
                 DataGridViewRow row = dgvReservasi.Rows[e.RowIndex];
                 selectedReservasiId = Convert.ToInt32(row.Cells["reservasi_id"].Value);
 
-                // Load the reservation details for editing
-                try
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
+
                     conn.Open();
                     string query = "SELECT pelanggan_id, meja_id, tanggal, waktu, status_reservasi FROM Reservasi WHERE reservasi_id = @id";
                     SqlCommand cmd = new SqlCommand(query, conn);
@@ -353,43 +360,46 @@ namespace Project
 
                     if (reader.Read())
                     {
+                        // Handle pelanggan_id (may be NULL)
                         if (!reader.IsDBNull(0))
                             cmbPelangganID.SelectedValue = reader.GetInt32(0);
                         else
                             cmbPelangganID.SelectedIndex = -1;
 
+                        // Handle meja_id (may be NULL)
                         if (!reader.IsDBNull(1))
                             cmbMejaID.SelectedValue = reader.GetInt32(1);
                         else
                             cmbMejaID.SelectedIndex = -1;
 
+                        // Date and Time
                         dtpTanggal.Value = reader.GetDateTime(2);
-
                         TimeSpan time = reader.GetTimeSpan(3);
                         dtpWaktu.Value = DateTime.Today.Add(time);
 
+                        // Status
                         cmbStatus.Text = reader.GetString(4);
                     }
                     reader.Close();
                 }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error loading reservation details: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    conn.Close();
-                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading data: " + ex.Message);
             }
         }
 
         private void UpdateTableStatus(int mejaId, string status)
         {
-            string query = "UPDATE Meja SET status_meja = @status WHERE meja_id = @id";
-            SqlCommand cmd = new SqlCommand(query, conn);
-            cmd.Parameters.AddWithValue("@status", status);
-            cmd.Parameters.AddWithValue("@id", mejaId);
-            cmd.ExecuteNonQuery();
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                conn.Open();
+                string query = "UPDATE Meja SET status_meja = @status WHERE meja_id = @id";
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@status", status);
+                cmd.Parameters.AddWithValue("@id", mejaId);
+                cmd.ExecuteNonQuery();
+            }
         }
 
         private void ClearForm()
