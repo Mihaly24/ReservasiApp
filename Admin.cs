@@ -78,7 +78,7 @@ namespace Project
                     // Fill the text fields with the selected admin's data
                     txtNama.Text = dgvAdminResto.CurrentRow.Cells["nama"].Value.ToString();
                     txtUsername.Text = dgvAdminResto.CurrentRow.Cells["username"].Value.ToString();
-                    txtPassword.Text = dgvAdminResto.CurrentRow.Cells["Password"].Value.ToString();
+                    txtPassword.Text = dgvAdminResto.CurrentRow.Cells["Passwords"].Value.ToString();
                 }
                 catch (Exception ex)
                 {
@@ -127,7 +127,7 @@ namespace Project
                     }
 
                     // Insert new admin
-                    string insertQuery = "INSERT INTO AdminResto (nama, username, Password) " +
+                    string insertQuery = "INSERT INTO AdminResto (nama, username, Passwords) " +
                                          "VALUES (@Nama, @Username, @Password)";
 
                     using (SqlCommand command = new SqlCommand(insertQuery, connection))
@@ -198,7 +198,7 @@ namespace Project
 
                     // Update admin
                     string updateQuery = "UPDATE AdminResto SET nama = @Nama, username = @Username, " +
-                                         "Password = @Password WHERE admin_id = @AdminID";
+                                         "Passwords = @Password WHERE admin_id = @AdminID";
 
                     using (SqlCommand command = new SqlCommand(updateQuery, connection))
                     {
