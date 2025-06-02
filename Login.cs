@@ -7,7 +7,6 @@ namespace Project
 {
     public partial class Login : Form
     {
-        // Base connection string without credentials
         private string baseConnectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;";
 
         public Login()
@@ -17,56 +16,89 @@ namespace Project
 
         private void Login_Load(object sender, EventArgs e)
         {
-            // You can add initialization logic here, if needed.
+            // Initialization logic if needed
         }
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
-            // Retrieve the username and password from the textboxes.
-            string username = txtUsername.Text.Trim();
+            string username = txtUsername.Text.Trim(); // Ini adalah NAMA SQL SERVER LOGIN
             string password = txtPassword.Text;
+            string userRole = null;
 
             try
             {
-                // Create a connection string with the provided credentials
-                string connectionString = baseConnectionString + $"User ID={username};Password={password}";
+                string connectionString = baseConnectionString + $"User ID={username};Password={password};";
 
-                // Test the connection to see if authentication works
                 using (SqlConnection connection = new SqlConnection(connectionString))
                 {
                     try
                     {
-                        connection.Open();
-                        // If we get here, the connection was successful
-                        MessageBox.Show("Login successful");
-                        this.Hide(); // Close or hide the login form
+                        connection.Open(); // Autentikasi oleh SQL Server
 
-                        // Store the authenticated connection string somewhere if needed for further use
-                        // For example, in a static property or in a configuration
-                        // AppSettings.ConnectionString = connectionString;
+                        // Tentukan peran pengguna berdasarkan keanggotaan SQL Server Database Role
+                        // GANTI 'AdminAppRole', 'StaffAppRole', 'PelangganAppRole' dengan nama peran yang Anda buat di SQL Server
+                        string roleCheckQuery = @"
+                            SELECT CASE
+                                WHEN IS_MEMBER('AdminAppRole') = 1 THEN 'Admin'
+                                WHEN IS_MEMBER('StaffAppRole') = 1 THEN 'Staff'
+                                WHEN IS_MEMBER('PelangganAppRole') = 1 THEN 'Pelanggan'
+                                ELSE NULL
+                            END AS UserRole";
 
-                        Dashboard dashboard = new Dashboard();
-                        dashboard.Show();
-                    }
-                    catch (SqlException sqlEx)
-                    {
-                        // SQL error codes for login failures:
-                        // 18456: Login failed for user
-                        if (sqlEx.Number == 18456)
+                        using (SqlCommand cmd = new SqlCommand(roleCheckQuery, connection))
                         {
-                            MessageBox.Show("Invalid login credentials");
+                            object result = cmd.ExecuteScalar();
+                            if (result != DBNull.Value && result != null)
+                            {
+                                userRole = result.ToString();
+                            }
+                        }
+
+                        if (userRole != null)
+                        {
+                            MessageBox.Show($"Login berhasil sebagai {userRole}");
+                            this.Hide();
+
+                            if (userRole == "Admin" || userRole == "Staff")
+                            {
+                                Dashboard dashboard = new Dashboard();
+                                dashboard.Show();
+                            }
+                            else if (userRole == "Pelanggan")
+                            {
+                                Reservasi reservasiForm = new Reservasi(); // Pastikan nama form ini benar
+                                reservasiForm.Show();
+                            }
+                            else
+                            {
+                                MessageBox.Show("Login berhasil, tetapi peran tidak terdefinisi untuk pengarahan.");
+                                // Application.Exit(); // Atau tindakan fallback
+                            }
                         }
                         else
                         {
-                            MessageBox.Show("Database error: " + sqlEx.Message);
+                            // Login SQL berhasil, tetapi SQL login tersebut tidak menjadi anggota
+                            // dari salah satu peran aplikasi yang diharapkan.
+                            MessageBox.Show("Login berhasil, tetapi peran pengguna tidak terkonfigurasi di sistem. Hubungi administrator.");
                         }
                     }
+                    catch (SqlException sqlEx)
+                    {
+                        if (sqlEx.Number == 18456) // Login failed for user
+                        {
+                            MessageBox.Show("Kredensial login salah.");
+                        }
+                        else
+                        {
+                            MessageBox.Show("Kesalahan database: " + sqlEx.Message);
+                        }
+                    }
+                    // `using` akan otomatis menutup koneksi
                 }
             }
             catch (Exception ex)
             {
-                // Log the exception details
-                MessageBox.Show("An error occurred: " + ex.Message);
+                MessageBox.Show("Terjadi kesalahan: " + ex.Message);
             }
         }
     }
