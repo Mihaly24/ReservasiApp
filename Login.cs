@@ -21,7 +21,7 @@ namespace Project
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
-            string username = txtUsername.Text.Trim(); // Ini adalah NAMA SQL SERVER LOGIN
+            string username = txtUsername.Text.Trim();
             string password = txtPassword.Text;
             string userRole = null;
 
@@ -33,10 +33,9 @@ namespace Project
                 {
                     try
                     {
-                        connection.Open(); // Autentikasi oleh SQL Server
+                        connection.Open();
 
-                        // Tentukan peran pengguna berdasarkan keanggotaan SQL Server Database Role
-                        // GANTI 'AdminAppRole', 'StaffAppRole', 'PelangganAppRole' dengan nama peran yang Anda buat di SQL Server
+                        
                         string roleCheckQuery = @"
                             SELECT CASE
                                 WHEN IS_MEMBER('AdminAppRole') = 1 THEN 'Admin'
@@ -66,12 +65,12 @@ namespace Project
                             }
                             else if (userRole == "Staff")
                             {
-                                DashStaff dashForm = new DashStaff(); // Pastikan nama form ini benar
+                                DashStaff dashForm = new DashStaff();
                                 dashForm.Show();
                             }
                             else if (userRole == "Pelanggan")
                             {
-                                ReserverPelanggan reservepelForm = new ReserverPelanggan(); // Pastikan nama form ini benar
+                                ReserverPelanggan reservepelForm = new ReserverPelanggan();
                                 reservepelForm.Show();
                             }
                             else
@@ -82,8 +81,6 @@ namespace Project
                         }
                         else
                         {
-                            // Login SQL berhasil, tetapi SQL login tersebut tidak menjadi anggota
-                            // dari salah satu peran aplikasi yang diharapkan.
                             MessageBox.Show("Login berhasil, tetapi peran pengguna tidak terkonfigurasi di sistem. Hubungi administrator.");
                         }
                     }
