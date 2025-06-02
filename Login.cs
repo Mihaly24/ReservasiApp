@@ -59,10 +59,15 @@ namespace Project
                             MessageBox.Show($"Login berhasil sebagai {userRole}");
                             this.Hide();
 
-                            if (userRole == "Admin" || userRole == "Staff")
+                            if (userRole == "Admin")
                             {
                                 Dashboard dashboard = new Dashboard();
                                 dashboard.Show();
+                            }
+                            else if (userRole == "Staff")
+                            {
+                                DashStaff dashForm = new DashStaff(); // Pastikan nama form ini benar
+                                dashForm.Show();
                             }
                             else if (userRole == "Pelanggan")
                             {

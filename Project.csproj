@@ -58,6 +58,12 @@
     <Compile Include="Dashboard.Designer.cs">
       <DependentUpon>Dashboard.cs</DependentUpon>
     </Compile>
+    <Compile Include="DashStaff.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DashStaff.Designer.cs">
+      <DependentUpon>DashStaff.cs</DependentUpon>
+    </Compile>
     <Compile Include="Login.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -70,11 +76,23 @@
     <Compile Include="Meja.Designer.cs">
       <DependentUpon>Meja.cs</DependentUpon>
     </Compile>
+    <Compile Include="MejaStaff.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MejaStaff.Designer.cs">
+      <DependentUpon>MejaStaff.cs</DependentUpon>
+    </Compile>
     <Compile Include="Menu.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Menu.Designer.cs">
       <DependentUpon>Menu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MenuStaff.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="MenuStaff.Designer.cs">
+      <DependentUpon>MenuStaff.cs</DependentUpon>
     </Compile>
     <Compile Include="Pelanggan.cs">
       <SubType>Form</SubType>
@@ -96,6 +114,12 @@
     <Compile Include="Reservasi.Designer.cs">
       <DependentUpon>Reservasi.cs</DependentUpon>
     </Compile>
+    <Compile Include="ReserveStaff.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReserveStaff.Designer.cs">
+      <DependentUpon>ReserveStaff.cs</DependentUpon>
+    </Compile>
     <Compile Include="StaffRestoran.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -108,14 +132,23 @@
     <EmbeddedResource Include="Dashboard.resx">
       <DependentUpon>Dashboard.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="DashStaff.resx">
+      <DependentUpon>DashStaff.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Login.resx">
       <DependentUpon>Login.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Meja.resx">
       <DependentUpon>Meja.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="MejaStaff.resx">
+      <DependentUpon>MejaStaff.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Menu.resx">
       <DependentUpon>Menu.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MenuStaff.resx">
+      <DependentUpon>MenuStaff.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Pelanggan.resx">
       <DependentUpon>Pelanggan.cs</DependentUpon>
@@ -134,6 +167,9 @@
     </Compile>
     <EmbeddedResource Include="Reservasi.resx">
       <DependentUpon>Reservasi.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReserveStaff.resx">
+      <DependentUpon>ReserveStaff.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="StaffRestoran.resx">
       <DependentUpon>StaffRestoran.cs</DependentUpon>
