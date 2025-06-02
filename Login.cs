@@ -71,8 +71,8 @@ namespace Project
                             }
                             else if (userRole == "Pelanggan")
                             {
-                                Reservasi reservasiForm = new Reservasi(); // Pastikan nama form ini benar
-                                reservasiForm.Show();
+                                ReserverPelanggan reservepelForm = new ReserverPelanggan(); // Pastikan nama form ini benar
+                                reservepelForm.Show();
                             }
                             else
                             {

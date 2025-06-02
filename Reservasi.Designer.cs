@@ -51,7 +51,7 @@
             this.cmbPelangganID.FormattingEnabled = true;
             this.cmbPelangganID.Location = new System.Drawing.Point(171, 43);
             this.cmbPelangganID.Name = "cmbPelangganID";
-            this.cmbPelangganID.Size = new System.Drawing.Size(121, 24);
+            this.cmbPelangganID.Size = new System.Drawing.Size(163, 24);
             this.cmbPelangganID.TabIndex = 0;
             // 
             // cmbMejaID
@@ -59,14 +59,14 @@
             this.cmbMejaID.FormattingEnabled = true;
             this.cmbMejaID.Location = new System.Drawing.Point(171, 90);
             this.cmbMejaID.Name = "cmbMejaID";
-            this.cmbMejaID.Size = new System.Drawing.Size(121, 24);
+            this.cmbMejaID.Size = new System.Drawing.Size(163, 24);
             this.cmbMejaID.TabIndex = 1;
             // 
             // dtpTanggal
             // 
             this.dtpTanggal.Location = new System.Drawing.Point(171, 134);
             this.dtpTanggal.Name = "dtpTanggal";
-            this.dtpTanggal.Size = new System.Drawing.Size(200, 22);
+            this.dtpTanggal.Size = new System.Drawing.Size(226, 22);
             this.dtpTanggal.TabIndex = 2;
             // 
             // dtpWaktu
@@ -74,7 +74,7 @@
             this.dtpWaktu.Format = System.Windows.Forms.DateTimePickerFormat.Time;
             this.dtpWaktu.Location = new System.Drawing.Point(171, 178);
             this.dtpWaktu.Name = "dtpWaktu";
-            this.dtpWaktu.Size = new System.Drawing.Size(200, 22);
+            this.dtpWaktu.Size = new System.Drawing.Size(121, 22);
             this.dtpWaktu.TabIndex = 3;
             // 
             // label1
@@ -130,7 +130,7 @@
             "Confirmed"});
             this.cmbStatus.Location = new System.Drawing.Point(171, 219);
             this.cmbStatus.Name = "cmbStatus";
-            this.cmbStatus.Size = new System.Drawing.Size(121, 24);
+            this.cmbStatus.Size = new System.Drawing.Size(163, 24);
             this.cmbStatus.TabIndex = 9;
             // 
             // dgvReservasi

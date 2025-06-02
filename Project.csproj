@@ -114,6 +114,12 @@
     <Compile Include="Reservasi.Designer.cs">
       <DependentUpon>Reservasi.cs</DependentUpon>
     </Compile>
+    <Compile Include="ReserverPelanggan.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReserverPelanggan.Designer.cs">
+      <DependentUpon>ReserverPelanggan.cs</DependentUpon>
+    </Compile>
     <Compile Include="ReserveStaff.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -167,6 +173,9 @@
     </Compile>
     <EmbeddedResource Include="Reservasi.resx">
       <DependentUpon>Reservasi.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReserverPelanggan.resx">
+      <DependentUpon>ReserverPelanggan.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="ReserveStaff.resx">
       <DependentUpon>ReserveStaff.cs</DependentUpon>

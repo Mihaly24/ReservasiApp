@@ -50,9 +50,9 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(247, 22);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(276, 16);
+            this.label1.Size = new System.Drawing.Size(317, 16);
             this.label1.TabIndex = 0;
-            this.label1.Text = "Welcome, which data you want to see or edit?";
+            this.label1.Text = "Welcome Admin, which data you want to see or edit?";
             // 
             // label2
             // 
