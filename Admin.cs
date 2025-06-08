@@ -398,7 +398,7 @@ namespace Project
             AnalyzeQuery(heavyQuery);
         }
 
-        private void BtnExport_Click(object sender, EventArgs e)
+        private void BtnReport_Click(object sender, EventArgs e)
         {
             ReportAdmin adminForm = new ReportAdmin();
             adminForm.Show();

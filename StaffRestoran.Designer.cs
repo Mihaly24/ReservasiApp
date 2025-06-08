@@ -186,6 +186,7 @@
             this.BtnReport.TabIndex = 15;
             this.BtnReport.Text = "Report";
             this.BtnReport.UseVisualStyleBackColor = true;
+            this.BtnReport.Click += new System.EventHandler(this.BtnReport_Click);
             // 
             // BtnAnalyze
             // 
@@ -195,6 +196,7 @@
             this.BtnAnalyze.TabIndex = 16;
             this.BtnAnalyze.Text = "Analayze";
             this.BtnAnalyze.UseVisualStyleBackColor = true;
+            this.BtnAnalyze.Click += new System.EventHandler(this.BtnAnalyze_Click);
             // 
             // StaffRestoran
             // 

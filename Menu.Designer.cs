@@ -173,6 +173,7 @@
             this.BtnAnalyze.TabIndex = 13;
             this.BtnAnalyze.Text = "Analyze";
             this.BtnAnalyze.UseVisualStyleBackColor = true;
+            this.BtnAnalyze.Click += new System.EventHandler(this.BtnAnalyze_Click);
             // 
             // BtnReport
             // 
@@ -182,6 +183,7 @@
             this.BtnReport.TabIndex = 14;
             this.BtnReport.Text = "Report";
             this.BtnReport.UseVisualStyleBackColor = true;
+            this.BtnReport.Click += new System.EventHandler(this.BtnReport_Click);
             // 
             // Menu
             // 

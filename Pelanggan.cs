@@ -9,11 +9,9 @@ namespace Project
 {
     public partial class Pelanggan : Form
     {
-        // --- Properti Kelas ---
         private readonly string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
         private int selectedPelangganId = 0;
 
-        // Properti untuk Caching
         private readonly ObjectCache _cache = MemoryCache.Default;
         private readonly CacheItemPolicy _cachePolicy = new CacheItemPolicy
         {
@@ -26,7 +24,6 @@ namespace Project
             InitializeComponent();
         }
 
-        // --- Event Handler Utama ---
 
         private void Pelanggan_Load(object sender, EventArgs e)
         {
@@ -55,7 +52,24 @@ namespace Project
             }
         }
 
-        // --- Metode CRUD dengan Stored Procedure & Transaction ---
+        private void AnalyzeQuery(string query)
+        {
+            using (var conn = new SqlConnection(connectionString))
+            {
+                conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
+                conn.Open();
+                var wrapped = $@"
+                SET STATISTICS IO ON;
+                SET STATISTICS TIME ON;
+                {query};
+                SET STATISTICS IO OFF;
+                SET STATISTICS TIME OFF;";
+                using (var cmd = new SqlCommand(wrapped, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
 
         private void BtnTambah_Click(object sender, EventArgs e)
         {
@@ -118,7 +132,6 @@ namespace Project
                     connection.Open();
                     transaction = connection.BeginTransaction();
 
-                    // Panggil Stored Procedure UpdatePelanggan
                     SqlCommand command = new SqlCommand("UpdatePelanggan", connection, transaction);
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@pelanggan_id", selectedPelangganId);
@@ -210,16 +223,14 @@ namespace Project
 
         private void BtnRefresh_Click(object sender, EventArgs e)
         {
-            _cache.Remove(CacheKey); // Hapus cache agar data segar dimuat
+            _cache.Remove(CacheKey);
             LoadData();
             ClearForm();
         }
 
-        // --- Metode Helper ---
 
         private void EnsureIndexes()
         {
-            // Memastikan index ada untuk performa query
             using (var conn = new SqlConnection(connectionString))
             {
                 conn.Open();
@@ -238,7 +249,6 @@ namespace Project
 
         private void LoadData()
         {
-            // Menerapkan pola caching
             try
             {
                 DataTable pelangganDataTable;
@@ -261,7 +271,6 @@ namespace Project
                     _cache.Add(CacheKey, pelangganDataTable, _cachePolicy);
                 }
                 dgvPelanggan.DataSource = pelangganDataTable;
-                // Mengubah nama kolom header
                 if (dgvPelanggan.Columns["pelanggan_id"] != null) dgvPelanggan.Columns["pelanggan_id"].HeaderText = "ID";
                 if (dgvPelanggan.Columns["nama"] != null) dgvPelanggan.Columns["nama"].HeaderText = "Nama";
                 if (dgvPelanggan.Columns["email"] != null) dgvPelanggan.Columns["email"].HeaderText = "Email";
@@ -273,6 +282,19 @@ namespace Project
                 MessageBox.Show("Error memuat data pelanggan: " + ex.Message, "Data Loading Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private void BtnAnalyze_Click(object sender, EventArgs e)
+        {
+            var heavyQuery = "SELECT nama, email, no_telp FROM dbo.Pelanggan WHERE nama LIKE 'A%'";
+            AnalyzeQuery(heavyQuery);
+        }
+
+        private void BtnReport_Click(object sender, EventArgs e)
+        {
+            ReportPelanggan pelangganReportForm = new ReportPelanggan();
+            pelangganReportForm.Show();
+        }
+
 
         private void ClearForm()
         {
@@ -286,7 +308,6 @@ namespace Project
 
         private bool ValidatePelangganInput(out string errorMessage)
         {
-            // Metode validasi dari kode asli Anda, sudah cukup baik.
             errorMessage = string.Empty;
             if (string.IsNullOrWhiteSpace(txtNama.Text))
             {

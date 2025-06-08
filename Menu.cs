@@ -2,17 +2,15 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Windows.Forms;
-using System.Runtime.Caching; // Diperlukan untuk caching
+using System.Runtime.Caching;
 
 namespace Project
 {
     public partial class Menu : Form
     {
-        // --- Properti Kelas ---
         private readonly string connectionString = @"Data Source=MIHALY\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
         private int selectedMenuId = 0;
 
-        // Properti untuk Caching
         private readonly ObjectCache _cache = MemoryCache.Default;
         private readonly CacheItemPolicy _cachePolicy = new CacheItemPolicy
         {
@@ -24,8 +22,6 @@ namespace Project
         {
             InitializeComponent();
         }
-
-        // --- Event Handler Utama ---
 
         private void Menu_Load(object sender, EventArgs e)
         {
@@ -59,7 +55,25 @@ namespace Project
             }
         }
 
-        // --- Metode CRUD dengan Stored Procedure & Transaction ---
+        private void AnalyzeQuery(string query)
+        {
+            using (var conn = new SqlConnection(connectionString))
+            {
+                conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
+                conn.Open();
+                var wrapped = $@"
+                SET STATISTICS IO ON;
+                SET STATISTICS TIME ON;
+                {query};
+                SET STATISTICS IO OFF;
+                SET STATISTICS TIME OFF;";
+                using (var cmd = new SqlCommand(wrapped, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
@@ -192,7 +206,7 @@ namespace Project
                     catch (SqlException sqlEx)
                     {
                         transaction?.Rollback();
-                        if (sqlEx.Number == 547) // Foreign Key constraint violation
+                        if (sqlEx.Number == 547)
                         {
                             MessageBox.Show("Gagal menghapus. Menu ini mungkin sedang digunakan dalam data reservasi.", "Error Hapus", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
@@ -217,7 +231,6 @@ namespace Project
             ClearFields();
         }
 
-        // --- Metode Helper ---
 
         private void EnsureIndexes()
         {
@@ -251,7 +264,6 @@ namespace Project
                     menuDataTable = new DataTable();
                     using (var connection = new SqlConnection(connectionString))
                     {
-                        // Query asli Anda sudah bagus
                         var query = "SELECT menu_id, nama, deskripsi, harga, kategori FROM Menu";
                         using (var adapter = new SqlDataAdapter(query, connection))
                         {
@@ -262,18 +274,30 @@ namespace Project
                 }
 
                 dgcMenu.DataSource = menuDataTable;
-                // Format kolom
                 dgcMenu.Columns["menu_id"].Visible = false;
                 dgcMenu.Columns["nama"].HeaderText = "Nama Menu";
                 dgcMenu.Columns["deskripsi"].HeaderText = "Deskripsi";
                 dgcMenu.Columns["harga"].HeaderText = "Harga";
                 dgcMenu.Columns["kategori"].HeaderText = "Kategori";
-                dgcMenu.Columns["harga"].DefaultCellStyle.Format = "N2"; // Format mata uang
+                dgcMenu.Columns["harga"].DefaultCellStyle.Format = "N2";
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error memuat data menu: " + ex.Message, "Data Loading Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void BtnAnalyze_Click(object sender, EventArgs e)
+        {
+            // Menganalisis query yang mencari menu dengan kategori 'makanan'
+            var heavyQuery = "SELECT nama, deskripsi, harga, kategori FROM dbo.Menu WHERE kategori = 'makanan'";
+            AnalyzeQuery(heavyQuery);
+        }
+
+        private void BtnReport_Click(object sender, EventArgs e)
+        {
+            ReportMenu menuReportForm = new ReportMenu();
+            menuReportForm.Show();
         }
 
         private void ClearFields()

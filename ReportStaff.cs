@@ -1,36 +1,30 @@
 ﻿using Microsoft.Reporting.WinForms;
 using System;
 using System.Data;
-using System.Windows.Forms;
 using System.Data.SqlClient;
 using System.IO;
+using System.Windows.Forms;
 
 namespace Project
 {
-    public partial class ReportAdmin : Form
+    public partial class ReportStaff: Form
     {
-        public ReportAdmin()
+        public ReportStaff()
         {
             InitializeComponent();
         }
 
-        // --- Metode yang sudah ada dari file Anda ---
-        private void ReportAdmin_Load(object sender, EventArgs e)
+        private void ReportStaff_Load(object sender, EventArgs e)
         {
-            // Panggil method untuk setup dan memuat data ke ReportViewer
             SetupReportViewer();
-            // Refresh report untuk menampilkan data
             this.reportViewer1.RefreshReport();
         }
-
-        /// <summary>
-        /// Mengatur koneksi, query, dan sumber data untuk ReportViewer.
-        /// </summary>
         private void SetupReportViewer()
         {
-            // Koneksi dan query dari file Anda
             string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
-            string query = "SELECT admin_id, nama, username, Passwords FROM AdminResto";
+
+            string query = "SELECT staff_id, nama, posisi, username, passwords, no_telp FROM Staff_Restoran";
+
             DataTable dt = new DataTable();
 
             using (SqlConnection conn = new SqlConnection(connectionString))
@@ -39,14 +33,20 @@ namespace Project
                 da.Fill(dt);
             }
 
-            ReportDataSource rds = new ReportDataSource("DataSetAdmin", dt);
+            // Buat ReportDataSource. Pastikan "DataSetStaff" sesuai dengan nama
+            // DataSet di dalam file .rdlc Anda.
+            ReportDataSource rds = new ReportDataSource("DataSetStaff", dt);
+
+            // Bersihkan data source yang ada dan tambahkan yang baru
             reportViewer1.LocalReport.DataSources.Clear();
             reportViewer1.LocalReport.DataSources.Add(rds);
-            reportViewer1.LocalReport.ReportPath = @"C:\Users\LENOVO\Documents\PABD\ProjectPABD\Project\AdminReport.rdlc";
+
+            // GANTI dengan lokasi file ReportStaff.rdlc Anda
+            reportViewer1.LocalReport.ReportPath = @"C:\Users\LENOVO\Documents\PABD\ProjectPABD\Project\ReportStaff.rdlc";
+
+            // Refresh ReportViewer untuk menampilkan laporan
             reportViewer1.RefreshReport();
         }
-
-        // --- FUNGSI EKSPOR BARU ---
 
         private void BtnExport_Click(object sender, EventArgs e)
         {
@@ -76,12 +76,12 @@ namespace Project
                 if (format == "PDF")
                 {
                     saveFileDialog.Filter = "PDF Files (*.pdf)|*.pdf";
-                    saveFileDialog.FileName = $"LaporanAdmin_{DateTime.Now:yyyyMMdd}.pdf";
+                    saveFileDialog.FileName = $"LaporanStaff_{DateTime.Now:yyyyMMdd}.pdf";
                 }
                 else if (format == "Excel") // Kondisi diubah ke "Excel"
                 {
                     saveFileDialog.Filter = "CSV (Comma delimited) (*.csv)|*.csv";
-                    saveFileDialog.FileName = $"LaporanAdmin_{DateTime.Now:yyyyMMdd}.csv";
+                    saveFileDialog.FileName = $"LaporanStaff_{DateTime.Now:yyyyMMdd}.csv";
                 }
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)

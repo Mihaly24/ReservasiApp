@@ -45,6 +45,25 @@ namespace Project
             }
         }
 
+        private void AnalyzeQuery(string query)
+        {
+            using (var conn = new SqlConnection(connectionString))
+            {
+                conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
+                conn.Open();
+                var wrapped = $@"
+                SET STATISTICS IO ON;
+                SET STATISTICS TIME ON;
+                {query};
+                SET STATISTICS IO OFF;
+                SET STATISTICS TIME OFF;";
+                using (var cmd = new SqlCommand(wrapped, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
         private void BtnAdd_Click(object sender, EventArgs e)
         {
             if (!ValidateInput(out string validationMessage))
@@ -188,6 +207,19 @@ namespace Project
             _cache.Remove(CacheKey);
             LoadStaffData();
             ClearInputs();
+        }
+
+        private void BtnAnalyze_Click(object sender, EventArgs e)
+        {
+            // Menganalisis query yang mencari staff dengan posisi 'kasir'
+            var heavyQuery = "SELECT nama, username, posisi FROM dbo.Staff_Restoran WHERE posisi = 'kasir'";
+            AnalyzeQuery(heavyQuery);
+        }
+
+        private void BtnReport_Click(object sender, EventArgs e)
+        {
+            ReportStaff staffReportForm = new ReportStaff();
+            staffReportForm.Show();
         }
 
         private void EnsureIndexes()

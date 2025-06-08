@@ -277,6 +277,11 @@
     <Compile Include="Menu.Designer.cs">
       <DependentUpon>Menu.cs</DependentUpon>
     </Compile>
+    <Compile Include="MenuDataSet.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>MenuDataSet.xsd</DependentUpon>
+    </Compile>
     <Compile Include="MenuStaff.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -288,6 +293,11 @@
     </Compile>
     <Compile Include="Pelanggan.Designer.cs">
       <DependentUpon>Pelanggan.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PelangganDataSet.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>PelangganDataSet.xsd</DependentUpon>
     </Compile>
     <Compile Include="Pembayaran.cs">
       <SubType>Form</SubType>
@@ -302,6 +312,24 @@
     </Compile>
     <Compile Include="ReportAdmin.Designer.cs">
       <DependentUpon>ReportAdmin.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReportMenu.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportMenu.Designer.cs">
+      <DependentUpon>ReportMenu.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReportPelanggan.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportPelanggan.Designer.cs">
+      <DependentUpon>ReportPelanggan.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReportStaff.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ReportStaff.Designer.cs">
+      <DependentUpon>ReportStaff.cs</DependentUpon>
     </Compile>
     <Compile Include="Reservasi.cs">
       <SubType>Form</SubType>
@@ -322,6 +350,11 @@
       <DependentUpon>ReserveStaff.cs</DependentUpon>
     </Compile>
     <Compile Include="SqlServerTypes\Loader.cs" />
+    <Compile Include="StaffDataSet.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>StaffDataSet.xsd</DependentUpon>
+    </Compile>
     <Compile Include="StaffRestoran.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -371,6 +404,18 @@
     <EmbeddedResource Include="ReportAdmin.resx">
       <DependentUpon>ReportAdmin.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="ReportMenu.rdlc" />
+    <EmbeddedResource Include="ReportMenu.resx">
+      <DependentUpon>ReportMenu.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReportPelanggan.rdlc" />
+    <EmbeddedResource Include="ReportPelanggan.resx">
+      <DependentUpon>ReportPelanggan.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ReportStaff.rdlc" />
+    <EmbeddedResource Include="ReportStaff.resx">
+      <DependentUpon>ReportStaff.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Reservasi.resx">
       <DependentUpon>Reservasi.cs</DependentUpon>
     </EmbeddedResource>
@@ -394,7 +439,29 @@
     <None Include="AdminDataSet.xss">
       <DependentUpon>AdminDataSet.xsd</DependentUpon>
     </None>
+    <None Include="MenuDataSet.xsc">
+      <DependentUpon>MenuDataSet.xsd</DependentUpon>
+    </None>
+    <None Include="MenuDataSet.xsd">
+      <SubType>Designer</SubType>
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>MenuDataSet.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="MenuDataSet.xss">
+      <DependentUpon>MenuDataSet.xsd</DependentUpon>
+    </None>
     <None Include="packages.config" />
+    <None Include="PelangganDataSet.xsc">
+      <DependentUpon>PelangganDataSet.xsd</DependentUpon>
+    </None>
+    <None Include="PelangganDataSet.xsd">
+      <SubType>Designer</SubType>
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>PelangganDataSet.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="PelangganDataSet.xss">
+      <DependentUpon>PelangganDataSet.xsd</DependentUpon>
+    </None>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -404,6 +471,17 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <None Include="StaffDataSet.xsc">
+      <DependentUpon>StaffDataSet.xsd</DependentUpon>
+    </None>
+    <None Include="StaffDataSet.xsd">
+      <SubType>Designer</SubType>
+      <Generator>MSDataSetGenerator</Generator>
+      <LastGenOutput>StaffDataSet.Designer.cs</LastGenOutput>
+    </None>
+    <None Include="StaffDataSet.xss">
+      <DependentUpon>StaffDataSet.xsd</DependentUpon>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

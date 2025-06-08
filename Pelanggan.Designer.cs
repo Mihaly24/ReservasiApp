@@ -168,6 +168,7 @@
             this.BtnReport.TabIndex = 13;
             this.BtnReport.Text = "Report";
             this.BtnReport.UseVisualStyleBackColor = true;
+            this.BtnReport.Click += new System.EventHandler(this.BtnReport_Click);
             // 
             // BtnAnalayze
             // 
@@ -177,6 +178,7 @@
             this.BtnAnalayze.TabIndex = 14;
             this.BtnAnalayze.Text = "Analyze";
             this.BtnAnalayze.UseVisualStyleBackColor = true;
+            this.BtnAnalayze.Click += new System.EventHandler(this.BtnAnalyze_Click);
             // 
             // Pelanggan
             // 
