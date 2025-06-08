@@ -275,97 +275,120 @@ namespace Project
                 return;
             }
 
+            if (string.IsNullOrWhiteSpace(txtNama.Text) || string.IsNullOrWhiteSpace(txtUsername.Text))
+            {
+                MessageBox.Show("Nama dan Username tidak boleh kosong.", "Input Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
+                SqlTransaction transaction = null;
+
                 try
                 {
                     connection.Open();
+                    // Memulai transaksi
+                    transaction = connection.BeginTransaction();
 
-                    // Validasi input agar tidak ada field penting yang kosong
-                    if (string.IsNullOrWhiteSpace(txtNama.Text) || string.IsNullOrWhiteSpace(txtUsername.Text))
+                    SqlCommand command = new SqlCommand("UpdateAdmin", connection, transaction);
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    // Menambahkan parameter untuk Stored Procedure
+                    command.Parameters.AddWithValue("@admin_id", selectedAdminId);
+                    command.Parameters.AddWithValue("@nama", txtNama.Text.Trim());
+                    command.Parameters.AddWithValue("@username", txtUsername.Text.Trim());
+                    command.Parameters.AddWithValue("@Passwords", txtPassword.Text.Trim());
+
+                    int result = command.ExecuteNonQuery();
+
+                    if (result > 0)
                     {
-                        MessageBox.Show("Nama dan Username tidak boleh kosong.", "Input Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
+                        transaction.Commit();
+
+                        _cache.Remove(CacheKey);
+                        MessageBox.Show("Data admin berhasil diperbarui!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadAdminData();
+                        ClearInputFields();
                     }
-
-                    using (SqlCommand command = new SqlCommand("UpdateAdmin", connection))
+                    else
                     {
-                        command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                        // Menambahkan parameter untuk Stored Procedure
-                        command.Parameters.AddWithValue("@admin_id", selectedAdminId);
-                        command.Parameters.AddWithValue("@nama", txtNama.Text.Trim());
-                        command.Parameters.AddWithValue("@username", txtUsername.Text.Trim());
-                        command.Parameters.AddWithValue("@Passwords", txtPassword.Text.Trim());
-
-                        int result = command.ExecuteNonQuery();
-
-                        if (result > 0)
-                        {
-                            _cache.Remove(CacheKey);
-                            MessageBox.Show("Data admin berhasil diperbarui!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            LoadAdminData();
-                            ClearInputFields();
-                        }
-                        else
-                        {
-                            MessageBox.Show("Data tidak ditemukan atau gagal diperbarui.", "Kesalahan", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
+                        throw new Exception("Data tidak ditemukan atau gagal diperbarui.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    try
+                    {
+                        transaction?.Rollback();
+                    }
+                    catch (Exception exRollback)
+                    {
+                        MessageBox.Show("Error saat rollback transaksi: " + exRollback.Message);
+                    }
+                    MessageBox.Show("Terjadi kesalahan. Perubahan telah dibatalkan.\nError: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
 
         private void BtnDelete_Click(object sender, EventArgs e)
         {
-            if (selectedAdminId > 0)
+            if (selectedAdminId == 0)
             {
-                DialogResult confirm = MessageBox.Show("Apakah Anda yakin ingin menghapus data admin ini?", "Konfirmasi Hapus",
-                                                        MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                MessageBox.Show("Pilih data admin yang akan dihapus!", "Peringatan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-                if (confirm == DialogResult.Yes)
+            DialogResult confirm = MessageBox.Show("Apakah Anda yakin ingin menghapus data admin ini?", "Konfirmasi Hapus",
+                                                    MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (confirm == DialogResult.Yes)
+            {
+                using (SqlConnection connection = new SqlConnection(connectionString))
                 {
-                    using (SqlConnection connection = new SqlConnection(connectionString))
+                    SqlTransaction transaction = null;
+
+                    try
+                    {
+                        connection.Open();
+                        // Memulai transaksi
+                        transaction = connection.BeginTransaction();
+
+                        // Membuat command dan menghubungkannya ke koneksi dan transaksi
+                        SqlCommand command = new SqlCommand("DeleteAdmin", connection, transaction);
+                        command.CommandType = System.Data.CommandType.StoredProcedure;
+                        command.Parameters.AddWithValue("@admin_id", selectedAdminId);
+
+                        int result = command.ExecuteNonQuery();
+
+                        if (result > 0)
+                        {
+                            transaction.Commit();
+
+                            _cache.Remove(CacheKey);
+                            MessageBox.Show("Data admin berhasil dihapus!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            LoadAdminData();
+                            ClearInputFields();
+                        }
+                        else
+                        {
+                            throw new Exception("Data tidak ditemukan di database.");
+                        }
+                    }
+                    catch (Exception ex)
                     {
                         try
                         {
-                            connection.Open();
-
-                            using (SqlCommand command = new SqlCommand("DeleteAdmin", connection))
-                            {
-                                command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                                command.Parameters.AddWithValue("@admin_id", selectedAdminId);
-
-                                int result = command.ExecuteNonQuery();
-
-                                if (result > 0)
-                                {
-                                    _cache.Remove(CacheKey);
-                                    MessageBox.Show("Data admin berhasil dihapus!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                                    LoadAdminData();
-                                    ClearInputFields();
-                                }
-                                else
-                                {
-                                    MessageBox.Show("Data tidak ditemukan atau gagal dihapus.", "Kesalahan", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                            }
+                            transaction?.Rollback();
                         }
-                        catch (Exception ex)
+                        catch (Exception exRollback)
                         {
-                            MessageBox.Show("Error: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            MessageBox.Show("Error saat rollback transaksi: " + exRollback.Message);
                         }
+
+                        MessageBox.Show("Terjadi kesalahan. Perubahan telah dibatalkan.\nError: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-            }
-            else
-            {
-                MessageBox.Show("Pilih data yang akan dihapus!", "Peringatan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
