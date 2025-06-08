@@ -7,12 +7,17 @@ using System.IO;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.Caching;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
+using NPOI.XWPF.UserModel;
+using System.Drawing.Printing;
+using System.Xml.Linq;
 
 namespace Project
 {
@@ -368,6 +373,12 @@ namespace Project
         {
             var heavyQuery = "SELECT nama, username, passwords FROM dbo.AdminResto WHERE nama LIKE 'A%'";
             AnalyzeQuery(heavyQuery);
+        }
+
+        private void BtnExport_Click(object sender, EventArgs e)
+        {
+            ReportAdmin adminForm = new ReportAdmin();
+            adminForm.Show();
         }
     }
 }

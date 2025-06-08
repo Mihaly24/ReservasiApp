@@ -40,6 +40,7 @@
             this.dgvAdminResto = new System.Windows.Forms.DataGridView();
             this.btnRefresh = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
+            this.BtnExport = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgvAdminResto)).BeginInit();
             this.SuspendLayout();
             // 
@@ -151,11 +152,22 @@
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.BtnAnalyze);
             // 
+            // BtnExport
+            // 
+            this.BtnExport.Location = new System.Drawing.Point(45, 200);
+            this.BtnExport.Name = "BtnExport";
+            this.BtnExport.Size = new System.Drawing.Size(75, 23);
+            this.BtnExport.TabIndex = 12;
+            this.BtnExport.Text = "Report";
+            this.BtnExport.UseVisualStyleBackColor = true;
+            this.BtnExport.Click += new System.EventHandler(this.BtnExport_Click);
+            // 
             // Admin
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.BtnExport);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.dgvAdminResto);
@@ -191,5 +203,6 @@
         private System.Windows.Forms.TextBox txtUsername;
         private System.Windows.Forms.Button btnRefresh;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button BtnExport;
     }
 }
