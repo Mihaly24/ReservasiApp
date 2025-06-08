@@ -41,6 +41,8 @@
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnHapus = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
+            this.BtnReport = new System.Windows.Forms.Button();
+            this.BtnAnalayze = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgvPelanggan)).BeginInit();
             this.SuspendLayout();
             // 
@@ -52,7 +54,6 @@
             this.Nama.Size = new System.Drawing.Size(44, 16);
             this.Nama.TabIndex = 0;
             this.Nama.Text = "Nama";
-            this.Nama.Click += new System.EventHandler(this.label1_Click);
             // 
             // Email
             // 
@@ -83,28 +84,28 @@
             // 
             // txtNama
             // 
-            this.txtNama.Location = new System.Drawing.Point(240, 21);
+            this.txtNama.Location = new System.Drawing.Point(204, 21);
             this.txtNama.Name = "txtNama";
             this.txtNama.Size = new System.Drawing.Size(454, 22);
             this.txtNama.TabIndex = 4;
             // 
             // txtEmail
             // 
-            this.txtEmail.Location = new System.Drawing.Point(240, 60);
+            this.txtEmail.Location = new System.Drawing.Point(204, 60);
             this.txtEmail.Name = "txtEmail";
             this.txtEmail.Size = new System.Drawing.Size(454, 22);
             this.txtEmail.TabIndex = 5;
             // 
             // txtNoTelp
             // 
-            this.txtNoTelp.Location = new System.Drawing.Point(240, 101);
+            this.txtNoTelp.Location = new System.Drawing.Point(204, 101);
             this.txtNoTelp.Name = "txtNoTelp";
             this.txtNoTelp.Size = new System.Drawing.Size(454, 22);
             this.txtNoTelp.TabIndex = 6;
             // 
             // txtAlamat
             // 
-            this.txtAlamat.Location = new System.Drawing.Point(240, 144);
+            this.txtAlamat.Location = new System.Drawing.Point(204, 144);
             this.txtAlamat.Name = "txtAlamat";
             this.txtAlamat.Size = new System.Drawing.Size(454, 22);
             this.txtAlamat.TabIndex = 7;
@@ -159,11 +160,31 @@
             this.btnRefresh.UseVisualStyleBackColor = true;
             this.btnRefresh.Click += new System.EventHandler(this.BtnRefresh_Click);
             // 
+            // BtnReport
+            // 
+            this.BtnReport.Location = new System.Drawing.Point(703, 38);
+            this.BtnReport.Name = "BtnReport";
+            this.BtnReport.Size = new System.Drawing.Size(75, 23);
+            this.BtnReport.TabIndex = 13;
+            this.BtnReport.Text = "Report";
+            this.BtnReport.UseVisualStyleBackColor = true;
+            // 
+            // BtnAnalayze
+            // 
+            this.BtnAnalayze.Location = new System.Drawing.Point(703, 121);
+            this.BtnAnalayze.Name = "BtnAnalayze";
+            this.BtnAnalayze.Size = new System.Drawing.Size(75, 23);
+            this.BtnAnalayze.TabIndex = 14;
+            this.BtnAnalayze.Text = "Analyze";
+            this.BtnAnalayze.UseVisualStyleBackColor = true;
+            // 
             // Pelanggan
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.BtnAnalayze);
+            this.Controls.Add(this.BtnReport);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btnHapus);
             this.Controls.Add(this.btnUpdate);
@@ -179,7 +200,7 @@
             this.Controls.Add(this.Nama);
             this.Name = "Pelanggan";
             this.Text = "Pelanggan";
-            this.Load += new System.EventHandler(this.Form1_Load);
+            this.Load += new System.EventHandler(this.Pelanggan_Load);
             ((System.ComponentModel.ISupportInitialize)(this.dgvPelanggan)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -201,6 +222,8 @@
         private System.Windows.Forms.Button btnUpdate;
         private System.Windows.Forms.Button btnHapus;
         private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.Button BtnReport;
+        private System.Windows.Forms.Button BtnAnalayze;
     }
 }
 

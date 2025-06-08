@@ -41,6 +41,8 @@
             this.btnUpdate = new System.Windows.Forms.Button();
             this.btnDelete = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
+            this.BtnAnalyze = new System.Windows.Forms.Button();
+            this.BtnReport = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgcMenu)).BeginInit();
             this.SuspendLayout();
             // 
@@ -145,7 +147,7 @@
             // 
             // btnDelete
             // 
-            this.btnDelete.Location = new System.Drawing.Point(649, 158);
+            this.btnDelete.Location = new System.Drawing.Point(649, 146);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(75, 23);
             this.btnDelete.TabIndex = 11;
@@ -163,11 +165,31 @@
             this.btnRefresh.UseVisualStyleBackColor = true;
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
             // 
+            // BtnAnalyze
+            // 
+            this.BtnAnalyze.Location = new System.Drawing.Point(649, 201);
+            this.BtnAnalyze.Name = "BtnAnalyze";
+            this.BtnAnalyze.Size = new System.Drawing.Size(75, 23);
+            this.BtnAnalyze.TabIndex = 13;
+            this.BtnAnalyze.Text = "Analyze";
+            this.BtnAnalyze.UseVisualStyleBackColor = true;
+            // 
+            // BtnReport
+            // 
+            this.BtnReport.Location = new System.Drawing.Point(71, 201);
+            this.BtnReport.Name = "BtnReport";
+            this.BtnReport.Size = new System.Drawing.Size(75, 23);
+            this.BtnReport.TabIndex = 14;
+            this.BtnReport.Text = "Report";
+            this.BtnReport.UseVisualStyleBackColor = true;
+            // 
             // Menu
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.BtnReport);
+            this.Controls.Add(this.BtnAnalyze);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.btnDelete);
             this.Controls.Add(this.btnUpdate);
@@ -205,5 +227,7 @@
         private System.Windows.Forms.Button btnUpdate;
         private System.Windows.Forms.Button btnDelete;
         private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.Button BtnAnalyze;
+        private System.Windows.Forms.Button BtnReport;
     }
 }

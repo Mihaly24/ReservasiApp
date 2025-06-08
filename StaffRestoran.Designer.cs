@@ -43,6 +43,8 @@
             this.btnDelete = new System.Windows.Forms.Button();
             this.dgvStaff = new System.Windows.Forms.DataGridView();
             this.btnRefresh = new System.Windows.Forms.Button();
+            this.BtnReport = new System.Windows.Forms.Button();
+            this.BtnAnalyze = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.dgvStaff)).BeginInit();
             this.SuspendLayout();
             // 
@@ -176,11 +178,31 @@
             this.btnRefresh.UseVisualStyleBackColor = true;
             this.btnRefresh.Click += new System.EventHandler(this.BtnRefresh_Click);
             // 
+            // BtnReport
+            // 
+            this.BtnReport.Location = new System.Drawing.Point(849, 44);
+            this.BtnReport.Name = "BtnReport";
+            this.BtnReport.Size = new System.Drawing.Size(75, 23);
+            this.BtnReport.TabIndex = 15;
+            this.BtnReport.Text = "Report";
+            this.BtnReport.UseVisualStyleBackColor = true;
+            // 
+            // BtnAnalyze
+            // 
+            this.BtnAnalyze.Location = new System.Drawing.Point(849, 161);
+            this.BtnAnalyze.Name = "BtnAnalyze";
+            this.BtnAnalyze.Size = new System.Drawing.Size(75, 23);
+            this.BtnAnalyze.TabIndex = 16;
+            this.BtnAnalyze.Text = "Analayze";
+            this.BtnAnalyze.UseVisualStyleBackColor = true;
+            // 
             // StaffRestoran
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(958, 450);
+            this.Controls.Add(this.BtnAnalyze);
+            this.Controls.Add(this.BtnReport);
             this.Controls.Add(this.btnRefresh);
             this.Controls.Add(this.dgvStaff);
             this.Controls.Add(this.btnDelete);
@@ -222,5 +244,7 @@
         private System.Windows.Forms.DataGridView dgvStaff;
         private System.Windows.Forms.Label notelp;
         private System.Windows.Forms.Button btnRefresh;
+        private System.Windows.Forms.Button BtnReport;
+        private System.Windows.Forms.Button BtnAnalyze;
     }
 }
