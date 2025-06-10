@@ -82,9 +82,10 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(46, 51);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(89, 16);
+            this.label1.Size = new System.Drawing.Size(113, 16);
             this.label1.TabIndex = 4;
-            this.label1.Text = "ID Pelanggan";
+            this.label1.Text = "Nama Pelanggan";
+            this.label1.Click += new System.EventHandler(this.label1_Click);
             // 
             // label2
             // 

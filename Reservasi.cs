@@ -516,5 +516,10 @@ namespace Project
             if (cmbStatus != null && cmbStatus.Items.Count > 0) cmbStatus.SelectedIndex = 0; //
             selectedReservasiId = 0; //
         }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
