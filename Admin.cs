@@ -209,7 +209,6 @@ namespace Project
 
         private void BtnAdd_Click(object sender, EventArgs e)
         {
-            // Validasi input tetap di luar, ini sudah bagus
             if (string.IsNullOrWhiteSpace(txtNama.Text) ||
                 string.IsNullOrWhiteSpace(txtUsername.Text) ||
                 string.IsNullOrWhiteSpace(txtPassword.Text))

@@ -313,5 +313,10 @@ namespace Project
             }
             return true;
         }
+
+        private void txtUsername_TextChanged(object sender, EventArgs e)
+        {
+
+        }
     }
 }
