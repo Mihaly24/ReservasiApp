@@ -1,539 +1,387 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Runtime.Caching;
 
 namespace Project
 {
     public partial class Pembayaran : Form
     {
-        private SqlConnection conn;
-        private string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
+        // Menambahkan instance Koneksi
+        private Koneksi kn = new Koneksi();
         private int selectedPembayaranId = 0;
+
+        private readonly ObjectCache _cache = MemoryCache.Default;
+        private readonly CacheItemPolicy _cachePolicy = new CacheItemPolicy
+        {
+            AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(5)
+        };
+        private const string PembayaranCacheKey = "PembayaranDataCache";
+        private const string ReservasiCacheKey = "ReservasiForPembayaranCache";
+
 
         public Pembayaran()
         {
             InitializeComponent();
-            conn = new SqlConnection(connectionString);
-
-            // Initialize the form
-            InitializeForm();
-
-            // Add event handlers
-            this.Load += Pembayaran_Load;
-            dgvPembayaran.CellClick += DgvPembayaran_CellClick;
-            cmbReservasiID.SelectedIndexChanged += CmbReservasiID_SelectedIndexChanged;
-            txtJumlah.KeyPress += TxtJumlah_KeyPress;
         }
 
         private void Pembayaran_Load(object sender, EventArgs e)
         {
+            EnsureIndexes();
             LoadReservasi();
             LoadPembayaran();
-
-            // Set default values
-            cmbMetode.SelectedIndex = 0; // 'Cash'
-            cmbStatus.SelectedIndex = 0; // 'Pending'
-        }
-
-        private void InitializeForm()
-        {
-            // Setup DataGridView
-            dgvPembayaran.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvPembayaran.ReadOnly = true;
-            dgvPembayaran.AllowUserToAddRows = false;
-            dgvPembayaran.MultiSelect = false;
-        }
-
-        private void LoadReservasi()
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                try
-                {
-                    connection.Open();
-                    string query = @"SELECT r.reservasi_id, 
-                            CONCAT(r.reservasi_id, ' - ', p.nama, ' (', FORMAT(r.tanggal, 'dd/MM/yyyy'), ') - ', r.status_reservasi) AS info,
-                            (SELECT TOP 1 pb.status_pembayaran FROM Pembayaran pb WHERE pb.reservasi_id = r.reservasi_id) AS payment_status
-                           FROM Reservasi r
-                           LEFT JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
-                           ORDER BY r.tanggal DESC, r.waktu DESC";
-
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
-                    {
-                        DataTable dt = new DataTable();
-                        adapter.Fill(dt);
-
-                        // Add a payment status indicator to the displayed text if a payment exists
-                        foreach (DataRow row in dt.Rows)
-                        {
-                            if (row["payment_status"] != DBNull.Value)
-                            {
-                                string paymentStatus = row["payment_status"].ToString();
-                                row["info"] = row["info"] + " [" + paymentStatus + "]";
-                            }
-                        }
-
-                        cmbReservasiID.DataSource = dt;
-                        cmbReservasiID.DisplayMember = "info";
-                        cmbReservasiID.ValueMember = "reservasi_id";
-                        cmbReservasiID.SelectedIndex = -1;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error loading reservations: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                // No need for finally block as 'using' automatically disposes/closes the connection
-            }
-        }
-
-        private void LoadPembayaran()
-        {
-            using (SqlConnection connection = new SqlConnection(connectionString))
-            {
-                try
-                {
-                    connection.Open();
-                    string query = @"SELECT pb.pembayaran_id, 
-                           CONCAT(r.reservasi_id, ' - ', p.nama, ' (', FORMAT(r.tanggal, 'dd/MM/yyyy'), ') - ', r.status_reservasi) AS Reservasi,
-                           pb.jumlah, pb.metode, pb.status_pembayaran
-                           FROM Pembayaran pb
-                           LEFT JOIN Reservasi r ON pb.reservasi_id = r.reservasi_id
-                           LEFT JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
-                           ORDER BY pb.pembayaran_id DESC";
-
-                    using (SqlCommand cmd = new SqlCommand(query, connection))
-                    using (SqlDataAdapter adapter = new SqlDataAdapter(cmd))
-                    {
-                        DataTable dt = new DataTable();
-                        adapter.Fill(dt);
-
-                        dgvPembayaran.DataSource = dt;
-
-                        // Format the amount column
-                        if (dgvPembayaran.Columns["jumlah"] != null)
-                            dgvPembayaran.Columns["jumlah"].DefaultCellStyle.Format = "N2";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error loading payments: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
+            dgvPembayaran.CellClick += DgvPembayaran_CellClick;
         }
 
         private void CmbReservasiID_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // If a reservation is selected, try to get any associated order total
-            if (cmbReservasiID.SelectedIndex != -1)
+            if (cmbReservasiID.SelectedIndex == -1 || cmbReservasiID.SelectedValue == null)
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
-                {
-                    try
-                    {
-                        connection.Open();
-
-                        // First check if there's already a payment for this reservation
-                        string checkQuery = @"SELECT jumlah, status_pembayaran 
-                                    FROM Pembayaran 
-                                    WHERE reservasi_id = @reservasi_id";
-
-                        using (SqlCommand checkCmd = new SqlCommand(checkQuery, connection))
-                        {
-                            checkCmd.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
-
-                            using (SqlDataReader reader = checkCmd.ExecuteReader())
-                            {
-                                if (reader.Read())
-                                {
-                                    // If there's already a payment, use its amount
-                                    decimal amount = reader.GetDecimal(0);
-                                    string status = reader.GetString(1);
-                                    txtJumlah.Text = amount.ToString("N2");
-
-                                    // Find and set the status
-                                    for (int i = 0; i < cmbStatus.Items.Count; i++)
-                                    {
-                                        if (string.Equals(cmbStatus.Items[i].ToString(), status, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            cmbStatus.SelectedIndex = i;
-                                            break;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    // Reset status to pending for new payments
-                                    cmbStatus.SelectedIndex = 0;
-                                }
-                            }
-
-                            // No existing payment, check for order total
-                            string query = @"SELECT ISNULL(SUM(harga), 0) as total
-                                   FROM Pesanan
-                                   WHERE reservasi_id = @reservasi_id";
-
-                            using (SqlCommand cmd = new SqlCommand(query, connection))
-                            {
-                                cmd.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
-
-                                object result = cmd.ExecuteScalar();
-                                if (result != null && result != DBNull.Value)
-                                {
-                                    decimal total = Convert.ToDecimal(result);
-                                    txtJumlah.Text = total.ToString("N2");
-                                }
-                                else
-                                {
-                                    txtJumlah.Text = "0.00";
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Just ignore errors in getting the total - user can enter manually
-                        txtJumlah.Text = "0.00";
-                    }
-                }
-            }
-        }
-
-        private void TxtJumlah_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            // Allow only digits, decimal point, and control characters
-            if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar) && e.KeyChar != '.')
-            {
-                e.Handled = true;
-            }
-
-            // Only allow one decimal point
-            if (e.KeyChar == '.' && (sender as TextBox).Text.IndexOf('.') > -1)
-            {
-                e.Handled = true;
-            }
-        }
-
-        private void BtnAdd_Click(object sender, EventArgs e)
-        {
-            if (cmbReservasiID.SelectedIndex == -1 || string.IsNullOrWhiteSpace(txtJumlah.Text) ||
-                cmbMetode.SelectedIndex == -1 || cmbStatus.SelectedIndex == -1)
-            {
-                MessageBox.Show("Please fill in all fields", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                ClearForm(false);
                 return;
             }
 
-            if (!decimal.TryParse(txtJumlah.Text, out decimal jumlah))
-            {
-                MessageBox.Show("Please enter a valid amount", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                conn.Open();
-                // Check if payment for this reservation already exists
-                string checkQuery = "SELECT COUNT(*) FROM Pembayaran WHERE reservasi_id = @reservasi_id";
-                SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
-                checkCmd.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
-                int count = (int)checkCmd.ExecuteScalar();
-
-                if (count > 0)
-                {
-                    DialogResult result = MessageBox.Show(
-                        "A payment for this reservation already exists. Would you like to update the existing payment instead?",
-                        "Duplicate Payment", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-                    if (result == DialogResult.Yes)
-                    {
-                        // Get the existing payment ID
-                        string getIdQuery = "SELECT pembayaran_id FROM Pembayaran WHERE reservasi_id = @reservasi_id";
-                        SqlCommand getIdCmd = new SqlCommand(getIdQuery, conn);
-                        getIdCmd.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
-                        selectedPembayaranId = (int)getIdCmd.ExecuteScalar();
-
-                        // Update instead of add
-                        string updateQuery = @"UPDATE Pembayaran 
-                                            SET jumlah = @jumlah, 
-                                                metode = @metode, 
-                                                status_pembayaran = @status
-                                            WHERE pembayaran_id = @id";
-
-                        SqlCommand updateCmd = new SqlCommand(updateQuery, conn);
-                        updateCmd.Parameters.AddWithValue("@jumlah", jumlah);
-                        updateCmd.Parameters.AddWithValue("@metode", cmbMetode.Text.ToLower());
-                        updateCmd.Parameters.AddWithValue("@status", cmbStatus.Text.ToLower());
-                        updateCmd.Parameters.AddWithValue("@id", selectedPembayaranId);
-
-                        updateCmd.ExecuteNonQuery();
-                        MessageBox.Show("Payment updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    conn.Close();
-                    ClearForm();
-                    LoadPembayaran();
-                    LoadReservasi();
-                    return;
-                }
-
-                string query = @"INSERT INTO Pembayaran (reservasi_id, jumlah, metode, status_pembayaran) 
-                               VALUES (@reservasi_id, @jumlah, @metode, @status)";
-
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
-                cmd.Parameters.AddWithValue("@jumlah", jumlah);
-                cmd.Parameters.AddWithValue("@metode", cmbMetode.Text.ToLower());
-                cmd.Parameters.AddWithValue("@status", cmbStatus.Text.ToLower());
-
-                cmd.ExecuteNonQuery();
-                MessageBox.Show("Payment added successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                // Update reservation status if payment is completed
-                if (cmbStatus.Text.ToLower() == "lunas")
-                {
-                    UpdateReservationAfterPayment((int)cmbReservasiID.SelectedValue);
-                }
-
-                ClearForm();
-                LoadPembayaran();
-                LoadReservasi();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error adding payment: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }
-
-        private void BtnUpdate_Click(object sender, EventArgs e)
-        {
-            if (selectedPembayaranId == 0)
-            {
-                MessageBox.Show("Please select a payment to update", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (cmbReservasiID.SelectedIndex == -1 || string.IsNullOrWhiteSpace(txtJumlah.Text) ||
-                cmbMetode.SelectedIndex == -1 || cmbStatus.SelectedIndex == -1)
-            {
-                MessageBox.Show("Please fill in all fields", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (!decimal.TryParse(txtJumlah.Text, out decimal jumlah))
-            {
-                MessageBox.Show("Please enter a valid amount", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                conn.Open();
-
-                // Get the current status and reservation ID before updating
-                string getQuery = "SELECT status_pembayaran, reservasi_id FROM Pembayaran WHERE pembayaran_id = @id";
-                SqlCommand getCmd = new SqlCommand(getQuery, conn);
-                getCmd.Parameters.AddWithValue("@id", selectedPembayaranId);
-                SqlDataReader reader = getCmd.ExecuteReader();
-
-                string currentStatus = string.Empty;
-                int reservasiId = 0;
-                if (reader.Read())
-                {
-                    currentStatus = reader.GetString(0);
-                    reservasiId = reader.GetInt32(1);
-                }
-                reader.Close();
-
-                // Update the payment
-                string query = @"UPDATE Pembayaran 
-                               SET reservasi_id = @reservasi_id, 
-                                   jumlah = @jumlah, 
-                                   metode = @metode, 
-                                   status_pembayaran = @status
-                               WHERE pembayaran_id = @id";
-
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
-                cmd.Parameters.AddWithValue("@jumlah", jumlah);
-                cmd.Parameters.AddWithValue("@metode", cmbMetode.Text.ToLower());
-                cmd.Parameters.AddWithValue("@status", cmbStatus.Text.ToLower());
-                cmd.Parameters.AddWithValue("@id", selectedPembayaranId);
-
-                cmd.ExecuteNonQuery();
-                MessageBox.Show("Payment updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                // If payment status changed to "lunas", update the reservation 
-                if (cmbStatus.Text.ToLower() == "lunas" && currentStatus != "lunas")
-                {
-                    UpdateReservationAfterPayment((int)cmbReservasiID.SelectedValue);
-                }
-
-                ClearForm();
-                LoadPembayaran();
-                LoadReservasi();
-                selectedPembayaranId = 0;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error updating payment: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                conn.Close();
-            }
-        }
-
-        private void BtnDelete_Click(object sender, EventArgs e)
-        {
-            if (selectedPembayaranId == 0)
-            {
-                MessageBox.Show("Please select a payment to delete", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            DialogResult result = MessageBox.Show("Are you sure you want to delete this payment?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (result == DialogResult.Yes)
-            {
-                try
-                {
-                    conn.Open();
-                    string query = "DELETE FROM Pembayaran WHERE pembayaran_id = @id";
-                    SqlCommand cmd = new SqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@id", selectedPembayaranId);
-                    cmd.ExecuteNonQuery();
-
-                    MessageBox.Show("Payment deleted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    ClearForm();
-                    LoadPembayaran();
-                    LoadReservasi();
-                    selectedPembayaranId = 0;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error deleting payment: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                finally
-                {
-                    conn.Close();
-                }
-            }
-        }
-
-        private void BtnRefresh_Click(object sender, EventArgs e)
-        {
-            LoadReservasi();
-            LoadPembayaran();
-            ClearForm();
-            selectedPembayaranId = 0;
+            int reservasiId = (int)cmbReservasiID.SelectedValue;
+            CheckPaymentExistsForReservation(reservasiId);
         }
 
         private void DgvPembayaran_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)
             {
-                DataGridViewRow row = dgvPembayaran.Rows[e.RowIndex];
-                selectedPembayaranId = Convert.ToInt32(row.Cells["pembayaran_id"].Value);
+                PopulateFormFromGrid(e.RowIndex);
+            }
+        }
 
-                // Load the payment details for editing
-                using (SqlConnection connection = new SqlConnection(connectionString))
+        private void BtnAdd_Click(object sender, EventArgs e)
+        {
+            if (!ValidateInput(out decimal jumlah)) return;
+
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
+            {
+                SqlTransaction transaction = null;
+                try
                 {
+                    connection.Open();
+                    transaction = connection.BeginTransaction();
+
+                    SqlCommand command = new SqlCommand("AddPembayaran", connection, transaction);
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
+                    command.Parameters.AddWithValue("@jumlah", jumlah);
+                    command.Parameters.AddWithValue("@metode", cmbMetode.Text);
+                    command.Parameters.AddWithValue("@status_pembayaran", cmbStatus.Text);
+
+                    command.ExecuteNonQuery();
+                    transaction.Commit();
+
+                    InvalidateCaches();
+                    MessageBox.Show("Pembayaran berhasil ditambahkan!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadAllData();
+                }
+                catch (Exception ex)
+                {
+                    transaction?.Rollback();
+                    MessageBox.Show("Terjadi kesalahan. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void BtnUpdate_Click(object sender, EventArgs e)
+        {
+            if (!ValidateInput(out decimal jumlah)) return;
+
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
+            {
+                SqlTransaction transaction = null;
+                try
+                {
+                    connection.Open();
+                    transaction = connection.BeginTransaction();
+
+                    SqlCommand command = new SqlCommand("UpdatePembayaran", connection, transaction);
+                    command.CommandType = CommandType.StoredProcedure;
+                    command.Parameters.AddWithValue("@pembayaran_id", selectedPembayaranId);
+                    command.Parameters.AddWithValue("@reservasi_id", cmbReservasiID.SelectedValue);
+                    command.Parameters.AddWithValue("@jumlah", jumlah);
+                    command.Parameters.AddWithValue("@metode", cmbMetode.Text);
+                    command.Parameters.AddWithValue("@status_pembayaran", cmbStatus.Text);
+
+                    int result = command.ExecuteNonQuery();
+                    if (result > 0)
+                    {
+                        transaction.Commit();
+                        InvalidateCaches();
+                        MessageBox.Show("Pembayaran berhasil diperbarui!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadAllData();
+                    }
+                    else
+                    {
+                        throw new Exception("Data tidak ditemukan atau gagal diperbarui.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    transaction?.Rollback();
+                    MessageBox.Show("Terjadi kesalahan. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void BtnDelete_Click(object sender, EventArgs e)
+        {
+            DialogResult confirm = MessageBox.Show("Apakah Anda yakin ingin menghapus pembayaran ini?", "Konfirmasi Hapus", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm == DialogResult.Yes)
+            {
+                // Menggunakan kn.connectionString()
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
+                {
+                    SqlTransaction transaction = null;
                     try
                     {
                         connection.Open();
-                        string query = "SELECT reservasi_id, jumlah, metode, status_pembayaran FROM Pembayaran WHERE pembayaran_id = @id";
+                        transaction = connection.BeginTransaction();
 
-                        using (SqlCommand cmd = new SqlCommand(query, connection))
+                        SqlCommand command = new SqlCommand("DeletePembayaran", connection, transaction);
+                        command.CommandType = CommandType.StoredProcedure;
+                        command.Parameters.AddWithValue("@pembayaran_id", selectedPembayaranId);
+
+                        int result = command.ExecuteNonQuery();
+                        if (result > 0)
                         {
-                            cmd.Parameters.AddWithValue("@id", selectedPembayaranId);
-
-                            using (SqlDataReader reader = cmd.ExecuteReader())
-                            {
-                                if (reader.Read())
-                                {
-                                    int reservasiId = reader.GetInt32(0);
-
-                                    // Try to find the reservation in the ComboBox
-                                    if (cmbReservasiID.Items.Count > 0)
-                                    {
-                                        DataTable dt = (DataTable)cmbReservasiID.DataSource;
-                                        DataRow[] foundRows = dt.Select($"reservasi_id = {reservasiId}");
-
-                                        if (foundRows.Length > 0)
-                                        {
-                                            // Found it, set the selected item
-                                            cmbReservasiID.SelectedValue = reservasiId;
-                                        }
-                                    }
-
-                                    txtJumlah.Text = reader.GetDecimal(1).ToString("N2");
-
-                                    string metode = reader.GetString(2);
-                                    // Find metode in ComboBox (case insensitive)
-                                    for (int i = 0; i < cmbMetode.Items.Count; i++)
-                                    {
-                                        if (string.Equals(cmbMetode.Items[i].ToString(), metode, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            cmbMetode.SelectedIndex = i;
-                                            break;
-                                        }
-                                    }
-
-                                    string status = reader.GetString(3);
-                                    // Find status in ComboBox (case insensitive)
-                                    for (int i = 0; i < cmbStatus.Items.Count; i++)
-                                    {
-                                        if (string.Equals(cmbStatus.Items[i].ToString(), status, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            cmbStatus.SelectedIndex = i;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
+                            transaction.Commit();
+                            InvalidateCaches();
+                            MessageBox.Show("Pembayaran berhasil dihapus!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            LoadAllData();
+                        }
+                        else
+                        {
+                            throw new Exception("Data tidak ditemukan di database.");
                         }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error loading payment details: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        transaction?.Rollback();
+                        MessageBox.Show("Terjadi kesalahan. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
         }
 
-        private void UpdateReservationAfterPayment(int reservasiId)
+        private void BtnRefresh_Click(object sender, EventArgs e)
         {
-            // This function would update any relevant reservation details after a payment is completed
-            // For example, you might want to update the reservation status or related tables
-
-            // The implementation depends on your business logic. Here's a simple example:
-            /*
-            string updateQuery = "UPDATE Reservasi SET status_reservasi = 'Paid' WHERE reservasi_id = @id";
-            SqlCommand updateCmd = new SqlCommand(updateQuery, conn);
-            updateCmd.Parameters.AddWithValue("@id", reservasiId);
-            updateCmd.ExecuteNonQuery();
-            */
-
-            // Note: This is commented out as it's just an example. Implement according to your needs.
+            InvalidateCaches();
+            LoadAllData();
         }
 
-        private void ClearForm()
+        private void EnsureIndexes()
         {
-            cmbReservasiID.SelectedIndex = -1;
-            txtJumlah.Text = "";
-            cmbMetode.SelectedIndex = 0;
-            cmbStatus.SelectedIndex = 0;
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
+            {
+                conn.Open();
+                var indexScript = @"
+                IF OBJECT_ID('dbo.Pembayaran', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Pembayaran_Status')
+                        CREATE NONCLUSTERED INDEX idx_Pembayaran_Status ON dbo.Pembayaran(status_pembayaran);
+                    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Pembayaran_ReservasiId')
+                        CREATE NONCLUSTERED INDEX idx_Pembayaran_ReservasiId ON dbo.Pembayaran(reservasi_id);
+                END";
+                using (var cmd = new SqlCommand(indexScript, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private void LoadReservasi()
+        {
+            try
+            {
+                DataTable reservasiDt;
+                if (_cache.Contains(ReservasiCacheKey))
+                {
+                    reservasiDt = _cache.Get(ReservasiCacheKey) as DataTable;
+                }
+                else
+                {
+                    reservasiDt = new DataTable();
+                    string query = @"SELECT r.reservasi_id, 
+                            CONCAT(r.reservasi_id, ' - ', p.nama, ' (', FORMAT(r.tanggal, 'dd/MM/yyyy'), ') - ', r.status_reservasi) AS info,
+                            (SELECT TOP 1 pb.status_pembayaran FROM Pembayaran pb WHERE pb.reservasi_id = r.reservasi_id) AS payment_status
+                           FROM Reservasi r
+                           JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
+                           ORDER BY r.tanggal DESC, r.waktu DESC";
+
+                    // Menggunakan kn.connectionString()
+                    using (var connection = new SqlConnection(kn.connectionString()))
+                    using (var adapter = new SqlDataAdapter(query, connection))
+                    {
+                        adapter.Fill(reservasiDt);
+                        foreach (DataRow row in reservasiDt.Rows)
+                        {
+                            if (row["payment_status"] != DBNull.Value)
+                            {
+                                row["info"] += $" [{row["payment_status"]}]";
+                            }
+                        }
+                    }
+                    _cache.Add(ReservasiCacheKey, reservasiDt, _cachePolicy);
+                }
+
+                cmbReservasiID.DataSource = reservasiDt;
+                cmbReservasiID.DisplayMember = "info";
+                cmbReservasiID.ValueMember = "reservasi_id";
+                cmbReservasiID.SelectedIndex = -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error memuat reservasi: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadPembayaran()
+        {
+            try
+            {
+                DataTable pembayaranDt;
+                if (_cache.Contains(PembayaranCacheKey))
+                {
+                    pembayaranDt = _cache.Get(PembayaranCacheKey) as DataTable;
+                }
+                else
+                {
+                    pembayaranDt = new DataTable();
+                    string query = @"SELECT pb.pembayaran_id, pb.reservasi_id,
+                           CONCAT(r.reservasi_id, ' - ', p.nama) AS Reservasi,
+                           pb.jumlah, pb.metode, pb.status_pembayaran
+                           FROM Pembayaran pb
+                           JOIN Reservasi r ON pb.reservasi_id = r.reservasi_id
+                           JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
+                           ORDER BY pb.pembayaran_id DESC";
+                    // Menggunakan kn.connectionString()
+                    using (var connection = new SqlConnection(kn.connectionString()))
+                    using (var adapter = new SqlDataAdapter(query, connection))
+                    {
+                        adapter.Fill(pembayaranDt);
+                    }
+                    _cache.Add(PembayaranCacheKey, pembayaranDt, _cachePolicy);
+                }
+
+                dgvPembayaran.DataSource = pembayaranDt;
+                if (dgvPembayaran.Columns["jumlah"] != null) dgvPembayaran.Columns["jumlah"].DefaultCellStyle.Format = "N2";
+                if (dgvPembayaran.Columns["pembayaran_id"] != null) dgvPembayaran.Columns["pembayaran_id"].Visible = false;
+                if (dgvPembayaran.Columns["reservasi_id"] != null) dgvPembayaran.Columns["reservasi_id"].Visible = false;
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error memuat pembayaran: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadAllData()
+        {
+            LoadReservasi();
+            LoadPembayaran();
+            ClearForm(true);
+        }
+
+        private void InvalidateCaches()
+        {
+            _cache.Remove(PembayaranCacheKey);
+            _cache.Remove(ReservasiCacheKey);
+        }
+
+        private void ClearForm(bool clearComboBox)
+        {
+            if (clearComboBox)
+            {
+                cmbReservasiID.SelectedIndex = -1;
+            }
+            txtJumlah.Clear();
+            cmbMetode.SelectedIndex = -1;
+            cmbStatus.SelectedIndex = -1;
             selectedPembayaranId = 0;
+            dgvPembayaran.ClearSelection();
+        }
+
+        private void CheckPaymentExistsForReservation(int reservasiId)
+        {
+            DataView dv = new DataView(dgvPembayaran.DataSource as DataTable);
+            dv.RowFilter = $"reservasi_id = {reservasiId}";
+
+            if (dv.Count > 0)
+            {
+                foreach (DataGridViewRow row in dgvPembayaran.Rows)
+                {
+                    if (Convert.ToInt32(row.Cells["reservasi_id"].Value) == reservasiId)
+                    {
+                        PopulateFormFromGrid(row.Index);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                selectedPembayaranId = 0;
+                // Menggunakan kn.connectionString()
+                using (var connection = new SqlConnection(kn.connectionString()))
+                {
+                    var query = "SELECT ISNULL(SUM(harga), 0) as total FROM Pesanan WHERE reservasi_id = @id";
+                    using (var cmd = new SqlCommand(query, connection))
+                    {
+                        connection.Open();
+                        cmd.Parameters.AddWithValue("@id", reservasiId);
+                        decimal total = Convert.ToDecimal(cmd.ExecuteScalar());
+                        txtJumlah.Text = total.ToString("N2");
+                    }
+                }
+                cmbMetode.SelectedIndex = 0;
+                cmbStatus.SelectedIndex = 0;
+            }
+        }
+
+        private void PopulateFormFromGrid(int rowIndex)
+        {
+            DataGridViewRow row = dgvPembayaran.Rows[rowIndex];
+            selectedPembayaranId = Convert.ToInt32(row.Cells["pembayaran_id"].Value);
+
+            int reservasiId = Convert.ToInt32(row.Cells["reservasi_id"].Value);
+            cmbReservasiID.SelectedValue = reservasiId;
+
+            txtJumlah.Text = Convert.ToDecimal(row.Cells["jumlah"].Value).ToString("N2");
+
+            string metode = row.Cells["metode"].Value.ToString();
+            cmbMetode.SelectedIndex = cmbMetode.FindStringExact(metode);
+
+            string status = row.Cells["status_pembayaran"].Value.ToString();
+            cmbStatus.SelectedIndex = cmbStatus.FindStringExact(status);
+        }
+
+        private bool ValidateInput(out decimal jumlah)
+        {
+            jumlah = 0;
+            if (cmbReservasiID.SelectedIndex == -1)
+            {
+                MessageBox.Show("Pilih reservasi terlebih dahulu.", "Validasi Gagal", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            if (!decimal.TryParse(txtJumlah.Text, out jumlah) || jumlah < 0)
+            {
+                MessageBox.Show("Jumlah harus berupa angka positif.", "Validasi Gagal", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            if (cmbMetode.SelectedIndex == -1 || cmbStatus.SelectedIndex == -1)
+            {
+                MessageBox.Show("Pilih metode dan status pembayaran.", "Validasi Gagal", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            return true;
         }
     }
 }

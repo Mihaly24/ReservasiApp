@@ -253,6 +253,7 @@
     <Compile Include="DashStaff.Designer.cs">
       <DependentUpon>DashStaff.cs</DependentUpon>
     </Compile>
+    <Compile Include="Koneksi.cs" />
     <Compile Include="Login.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -23,8 +23,8 @@ namespace Project
 {
     public partial class Admin : Form
     {
-        // Database connection string
-        private readonly string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True"; //
+        // Instantiate Koneksi to manage the database connection
+        private Koneksi kn = new Koneksi();
         private int selectedAdminId = 0;
 
         private readonly MemoryCache _cache = MemoryCache.Default;
@@ -43,13 +43,13 @@ namespace Project
         {
             EnsureIndexes();
             LoadAdminData();
-
-            dgvAdminResto.SelectionChanged += DgvAdminResto_SelectionChanged; //
+            dgvAdminResto.SelectionChanged += DgvAdminResto_SelectionChanged;
         }
 
         private void EnsureIndexes()
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Use kn.connectionString() directly to establish a connection
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.Open();
                 var indexScript = @"
@@ -58,9 +58,9 @@ namespace Project
                     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Admin_Nama')
                         CREATE NONCLUSTERED INDEX idx_Admin_Nama ON dbo.AdminResto(nama);
                 END";
-                using (var cmd = new SqlCommand(indexScript, conn)) //
+                using (var cmd = new SqlCommand(indexScript, conn))
                 {
-                    cmd.ExecuteNonQuery(); //
+                    cmd.ExecuteNonQuery();
                 }
             }
         }
@@ -71,33 +71,25 @@ namespace Project
             {
                 DataTable adminDataTable;
 
-                // Langkah 1: Periksa apakah data ada di dalam cache
                 if (_cache.Contains(CacheKey))
                 {
-                    // Jika ada, ambil data dari cache
                     adminDataTable = _cache.Get(CacheKey) as DataTable;
                 }
                 else
                 {
-                    // Jika tidak ada, ambil data dari database
                     adminDataTable = new DataTable();
-                    using (var connection = new SqlConnection(connectionString))
+                    // Use kn.connectionString() directly
+                    using (var connection = new SqlConnection(kn.connectionString()))
                     {
                         connection.Open();
-
-                        // Query yang lebih spesifik, mirip dengan di gambar
                         var query = "SELECT admin_id, nama, username, Passwords FROM dbo.AdminResto";
                         using (var adapter = new SqlDataAdapter(query, connection))
                         {
                             adapter.Fill(adminDataTable);
                         }
                     }
-
-                    // Langkah 2: Simpan data yang baru diambil ke dalam cache
                     _cache.Add(CacheKey, adminDataTable, _cachePolicy);
                 }
-
-                // Langkah 3: Tampilkan data ke DataGridView
                 dgvAdminResto.DataSource = adminDataTable;
             }
             catch (Exception ex)
@@ -108,7 +100,8 @@ namespace Project
 
         private void AnalyzeQuery(string query)
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Use kn.connectionString() directly
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
                 conn.Open();
@@ -127,41 +120,35 @@ namespace Project
 
         private void ClearInputFields()
         {
-            txtNama.Text = ""; //
-            txtUsername.Text = ""; //
-            txtPassword.Text = ""; //
-            selectedAdminId = 0; //
+            txtNama.Text = "";
+            txtUsername.Text = "";
+            txtPassword.Text = "";
+            selectedAdminId = 0;
         }
 
         private void DgvAdminResto_SelectionChanged(object sender, EventArgs e)
         {
-            if (dgvAdminResto.CurrentRow != null) //
+            if (dgvAdminResto.CurrentRow != null)
             {
                 try
                 {
-                    // Get the ID of the selected admin
-                    selectedAdminId = Convert.ToInt32(dgvAdminResto.CurrentRow.Cells["admin_id"].Value); //
-
-                    // Fill the text fields with the selected admin's data
-                    txtNama.Text = dgvAdminResto.CurrentRow.Cells["nama"].Value.ToString(); //
-                    txtUsername.Text = dgvAdminResto.CurrentRow.Cells["username"].Value.ToString(); //
-                    txtPassword.Text = dgvAdminResto.CurrentRow.Cells["Passwords"].Value.ToString(); //
+                    selectedAdminId = Convert.ToInt32(dgvAdminResto.CurrentRow.Cells["admin_id"].Value);
+                    txtNama.Text = dgvAdminResto.CurrentRow.Cells["nama"].Value.ToString();
+                    txtUsername.Text = dgvAdminResto.CurrentRow.Cells["username"].Value.ToString();
+                    txtPassword.Text = dgvAdminResto.CurrentRow.Cells["Passwords"].Value.ToString();
                 }
                 catch (Exception ex)
                 {
-                    // If there's an error (like column name doesn't exist), just log it
-                    Console.WriteLine("Error in selection changed: " + ex.Message); //
+                    Console.WriteLine("Error in selection changed: " + ex.Message);
                     MessageBox.Show("Error processing selection: " + ex.Message, "Selection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 }
             }
         }
 
-        // Helper method for input validation
         private bool ValidateAdminInput(out string errorMessage)
         {
             errorMessage = string.Empty;
 
-            // Validate Nama
             if (string.IsNullOrWhiteSpace(txtNama.Text))
             {
                 errorMessage = "Nama field cannot be empty.";
@@ -178,24 +165,17 @@ namespace Project
                 return false;
             }
 
-            // Validate Username
             if (string.IsNullOrWhiteSpace(txtUsername.Text))
             {
                 errorMessage = "Username field cannot be empty.";
                 return false;
             }
-            // Add more specific username validation if needed (e.g., length, no special characters other than underscore)
-            // For example: if (!Regex.IsMatch(txtUsername.Text, @"^[a-zA-Z0-9_]+$")) { errorMessage = "Username can only contain letters, numbers, and underscores."; return false; }
 
-
-            // Validate Password
             if (string.IsNullOrWhiteSpace(txtPassword.Text))
             {
                 errorMessage = "Password field cannot be empty.";
                 return false;
             }
-            // Add password complexity rules if needed (e.g., minimum length, special characters)
-            // For example: if (txtPassword.Text.Length < 6) { errorMessage = "Password must be at least 6 characters long."; return false; }
 
             return true;
         }
@@ -203,8 +183,8 @@ namespace Project
         private void BtnRefresh_Click(object sender, EventArgs e)
         {
             _cache.Remove(CacheKey);
-            LoadAdminData(); //
-            ClearInputFields(); //
+            LoadAdminData();
+            ClearInputFields();
         }
 
         private void BtnAdd_Click(object sender, EventArgs e)
@@ -216,11 +196,10 @@ namespace Project
                 MessageBox.Show("Harap isi semua data!", "Peringatan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Use kn.connectionString() directly
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
-
                 try
                 {
                     connection.Open();
@@ -229,7 +208,6 @@ namespace Project
                     SqlCommand command = new SqlCommand("AddAdmin", connection, transaction);
                     command.CommandType = System.Data.CommandType.StoredProcedure;
 
-                    // Menambahkan parameter seperti biasa
                     command.Parameters.AddWithValue("@nama", txtNama.Text.Trim());
                     command.Parameters.AddWithValue("@username", txtUsername.Text.Trim());
                     command.Parameters.AddWithValue("@Passwords", txtPassword.Text.Trim());
@@ -239,7 +217,6 @@ namespace Project
                     if (result > 0)
                     {
                         transaction.Commit();
-
                         _cache.Remove(CacheKey);
                         MessageBox.Show("Admin berhasil ditambahkan!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         LoadAdminData();
@@ -252,15 +229,7 @@ namespace Project
                 }
                 catch (Exception ex)
                 {
-                    try
-                    {
-                        transaction?.Rollback();
-                    }
-                    catch (Exception exRollback)
-                    {
-                        MessageBox.Show("Error saat rollback transaksi: " + exRollback.Message);
-                    }
-
+                    transaction?.Rollback();
                     MessageBox.Show("Terjadi kesalahan. Perubahan telah dibatalkan.\nError: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -279,21 +248,18 @@ namespace Project
                 MessageBox.Show("Nama dan Username tidak boleh kosong.", "Input Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Use kn.connectionString() directly
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
-
                 try
                 {
                     connection.Open();
-                    // Memulai transaksi
                     transaction = connection.BeginTransaction();
 
                     SqlCommand command = new SqlCommand("UpdateAdmin", connection, transaction);
                     command.CommandType = System.Data.CommandType.StoredProcedure;
 
-                    // Menambahkan parameter untuk Stored Procedure
                     command.Parameters.AddWithValue("@admin_id", selectedAdminId);
                     command.Parameters.AddWithValue("@nama", txtNama.Text.Trim());
                     command.Parameters.AddWithValue("@username", txtUsername.Text.Trim());
@@ -304,7 +270,6 @@ namespace Project
                     if (result > 0)
                     {
                         transaction.Commit();
-
                         _cache.Remove(CacheKey);
                         MessageBox.Show("Data admin berhasil diperbarui!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         LoadAdminData();
@@ -317,14 +282,7 @@ namespace Project
                 }
                 catch (Exception ex)
                 {
-                    try
-                    {
-                        transaction?.Rollback();
-                    }
-                    catch (Exception exRollback)
-                    {
-                        MessageBox.Show("Error saat rollback transaksi: " + exRollback.Message);
-                    }
+                    transaction?.Rollback();
                     MessageBox.Show("Terjadi kesalahan. Perubahan telah dibatalkan.\nError: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
@@ -343,17 +301,15 @@ namespace Project
 
             if (confirm == DialogResult.Yes)
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                // Use kn.connectionString() directly
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
                 {
                     SqlTransaction transaction = null;
-
                     try
                     {
                         connection.Open();
-                        // Memulai transaksi
                         transaction = connection.BeginTransaction();
 
-                        // Membuat command dan menghubungkannya ke koneksi dan transaksi
                         SqlCommand command = new SqlCommand("DeleteAdmin", connection, transaction);
                         command.CommandType = System.Data.CommandType.StoredProcedure;
                         command.Parameters.AddWithValue("@admin_id", selectedAdminId);
@@ -363,7 +319,6 @@ namespace Project
                         if (result > 0)
                         {
                             transaction.Commit();
-
                             _cache.Remove(CacheKey);
                             MessageBox.Show("Data admin berhasil dihapus!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             LoadAdminData();
@@ -376,15 +331,7 @@ namespace Project
                     }
                     catch (Exception ex)
                     {
-                        try
-                        {
-                            transaction?.Rollback();
-                        }
-                        catch (Exception exRollback)
-                        {
-                            MessageBox.Show("Error saat rollback transaksi: " + exRollback.Message);
-                        }
-
+                        transaction?.Rollback();
                         MessageBox.Show("Terjadi kesalahan. Perubahan telah dibatalkan.\nError: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }

@@ -8,7 +8,8 @@ namespace Project
 {
     public partial class Menu : Form
     {
-        private readonly string connectionString = @"Data Source=MIHALY\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
+        // Menambahkan instance Koneksi
+        private Koneksi kn = new Koneksi();
         private int selectedMenuId = 0;
 
         private readonly ObjectCache _cache = MemoryCache.Default;
@@ -57,7 +58,8 @@ namespace Project
 
         private void AnalyzeQuery(string query)
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
                 conn.Open();
@@ -74,15 +76,15 @@ namespace Project
             }
         }
 
-
         private void btnAdd_Click(object sender, EventArgs e)
         {
             if (!ValidateInput(out decimal harga))
             {
-                return; // Pesan error sudah ditampilkan di dalam ValidateInput
+                return;
             }
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
                 try
@@ -90,7 +92,6 @@ namespace Project
                     connection.Open();
                     transaction = connection.BeginTransaction();
 
-                    // Panggil Stored Procedure AddMenu
                     SqlCommand command = new SqlCommand("AddMenu", connection, transaction);
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@nama", txtNama.Text.Trim());
@@ -126,7 +127,8 @@ namespace Project
                 return;
             }
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
                 try
@@ -134,7 +136,6 @@ namespace Project
                     connection.Open();
                     transaction = connection.BeginTransaction();
 
-                    // Panggil Stored Procedure UpdateMenu
                     SqlCommand command = new SqlCommand("UpdateMenu", connection, transaction);
                     command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@menu_id", selectedMenuId);
@@ -176,7 +177,8 @@ namespace Project
             DialogResult confirm = MessageBox.Show("Anda yakin ingin menghapus menu ini?", "Konfirmasi Hapus", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (confirm == DialogResult.Yes)
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                // Menggunakan kn.connectionString()
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
                 {
                     SqlTransaction transaction = null;
                     try
@@ -184,7 +186,6 @@ namespace Project
                         connection.Open();
                         transaction = connection.BeginTransaction();
 
-                        // Panggil Stored Procedure DeleteMenu
                         SqlCommand command = new SqlCommand("DeleteMenu", connection, transaction);
                         command.CommandType = CommandType.StoredProcedure;
                         command.Parameters.AddWithValue("@menu_id", selectedMenuId);
@@ -234,7 +235,8 @@ namespace Project
 
         private void EnsureIndexes()
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.Open();
                 var indexScript = @"
@@ -262,7 +264,8 @@ namespace Project
                 else
                 {
                     menuDataTable = new DataTable();
-                    using (var connection = new SqlConnection(connectionString))
+                    // Menggunakan kn.connectionString()
+                    using (var connection = new SqlConnection(kn.connectionString()))
                     {
                         var query = "SELECT menu_id, nama, deskripsi, harga, kategori FROM Menu";
                         using (var adapter = new SqlDataAdapter(query, connection))
@@ -289,7 +292,6 @@ namespace Project
 
         private void BtnAnalyze_Click(object sender, EventArgs e)
         {
-            // Menganalisis query yang mencari menu dengan kategori 'makanan'
             var heavyQuery = "SELECT nama, deskripsi, harga, kategori FROM dbo.Menu WHERE kategori = 'makanan'";
             AnalyzeQuery(heavyQuery);
         }

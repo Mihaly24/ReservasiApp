@@ -1,280 +1,297 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Runtime.Caching;
+using System.Linq;
 
 namespace Project
 {
     public partial class Meja : Form
     {
-        // Database connection string
-        private string connectionString = @"Data Source=MIHALY\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
-        private SqlConnection connection;
-        private SqlCommand command;
-        private SqlDataAdapter adapter;
-        private DataTable dataTable;
+        // Menambahkan instance Koneksi
+        private Koneksi kn = new Koneksi();
         private int selectedMejaId = 0;
+
+        private readonly ObjectCache _cache = MemoryCache.Default;
+        private readonly CacheItemPolicy _cachePolicy = new CacheItemPolicy
+        {
+            AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(10)
+        };
+        private const string CacheKey = "MejaDataCache";
 
         public Meja()
         {
             InitializeComponent();
-
-            // Set initial selection for status combobox
-            cmbStatusMeja.SelectedIndex = 0;
-
-            // Add event handlers for buttons and grid
-            dgcMeja.CellClick += new DataGridViewCellEventHandler(dgcMeja_CellClick);
         }
 
         private void Meja_Load(object sender, EventArgs e)
         {
+            EnsureIndexes();
             LoadData();
+            dgcMeja.CellClick += dgcMeja_CellClick;
         }
 
-        // Load data from database to DataGridView
-        private void LoadData()
+        private void dgcMeja_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            try
+            if (e.RowIndex >= 0)
             {
-                using (connection = new SqlConnection(connectionString))
-                {
-                    string query = "SELECT meja_id, nomor_meja, kapasitas, status_meja FROM Meja";
-                    command = new SqlCommand(query, connection);
-                    adapter = new SqlDataAdapter(command);
-                    dataTable = new DataTable();
-                    adapter.Fill(dataTable);
-                    dgcMeja.DataSource = dataTable;
-
-                    // Optional: Format column headers and hide meja_id column
-                    dgcMeja.Columns["meja_id"].Visible = false;
-                    dgcMeja.Columns["nomor_meja"].HeaderText = "Nomor Meja";
-                    dgcMeja.Columns["kapasitas"].HeaderText = "Kapasitas";
-                    dgcMeja.Columns["status_meja"].HeaderText = "Status Meja";
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error loading data: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                DataGridViewRow row = dgcMeja.Rows[e.RowIndex];
+                selectedMejaId = Convert.ToInt32(row.Cells["meja_id"].Value);
+                txtNomorMeja.Text = row.Cells["nomor_meja"].Value.ToString();
+                txtKapasitas.Text = row.Cells["kapasitas"].Value.ToString().Replace(" orang", "").Trim();
+                cmbStatusMeja.Text = row.Cells["status_meja"].Value.ToString();
             }
         }
 
-        // Add new table record
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            try
+            if (!ValidateInput(out int nomorMeja, out string kapasitasFormatted))
             {
-                // Validate input
-                if (string.IsNullOrWhiteSpace(txtNomorMeja.Text) || string.IsNullOrWhiteSpace(txtKapasitas.Text))
-                {
-                    MessageBox.Show("Nomor meja dan kapasitas harus diisi!", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+                return;
+            }
 
-                if (!int.TryParse(txtNomorMeja.Text, out int nomorMeja))
-                {
-                    MessageBox.Show("Nomor meja harus berupa angka!", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // Format kapasitas to match the CHECK constraint
-                string kapasitasFormatted = FormatKapasitas(txtKapasitas.Text);
-
-                using (connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
+            {
+                SqlTransaction transaction = null;
+                try
                 {
                     connection.Open();
-                    string query = "INSERT INTO Meja (nomor_meja, kapasitas, status_meja) VALUES (@nomor_meja, @kapasitas, @status_meja)";
-                    command = new SqlCommand(query, connection);
+                    transaction = connection.BeginTransaction();
+
+                    SqlCommand command = new SqlCommand("AddMeja", connection, transaction);
+                    command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@nomor_meja", nomorMeja);
                     command.Parameters.AddWithValue("@kapasitas", kapasitasFormatted);
                     command.Parameters.AddWithValue("@status_meja", cmbStatusMeja.Text);
-                    command.ExecuteNonQuery();
 
-                    MessageBox.Show("Data berhasil ditambahkan!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    ClearFields();
+                    command.ExecuteNonQuery();
+                    transaction.Commit();
+
+                    _cache.Remove(CacheKey);
+                    MessageBox.Show("Data meja berhasil ditambahkan!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     LoadData();
+                    ClearFields();
                 }
-            }
-            catch (SqlException ex)
-            {
-                if (ex.Number == 2627 || ex.Number == 2601) // Unique constraint error
+                catch (SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
                 {
-                    MessageBox.Show("Nomor meja sudah digunakan!", "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    transaction?.Rollback();
+                    MessageBox.Show("Nomor meja sudah ada. Silakan gunakan nomor lain.", "Error Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Error adding data: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    transaction?.Rollback();
+                    MessageBox.Show("Terjadi kesalahan saat menambah data. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // Update selected table record
         private void btnUpdate_Click(object sender, EventArgs e)
         {
-            try
+            if (selectedMejaId == 0)
             {
-                if (selectedMejaId == 0)
-                {
-                    MessageBox.Show("Pilih data yang akan diupdate!", "Selection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+                MessageBox.Show("Pilih meja yang akan diupdate!", "Peringatan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (!ValidateInput(out int nomorMeja, out string kapasitasFormatted))
+            {
+                return;
+            }
 
-                // Validate input
-                if (string.IsNullOrWhiteSpace(txtNomorMeja.Text) || string.IsNullOrWhiteSpace(txtKapasitas.Text))
-                {
-                    MessageBox.Show("Nomor meja dan kapasitas harus diisi!", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                if (!int.TryParse(txtNomorMeja.Text, out int nomorMeja))
-                {
-                    MessageBox.Show("Nomor meja harus berupa angka!", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                // Format kapasitas to match the CHECK constraint
-                string kapasitasFormatted = FormatKapasitas(txtKapasitas.Text);
-
-                using (connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
+            {
+                SqlTransaction transaction = null;
+                try
                 {
                     connection.Open();
-                    string query = "UPDATE Meja SET nomor_meja = @nomor_meja, kapasitas = @kapasitas, status_meja = @status_meja WHERE meja_id = @meja_id";
-                    command = new SqlCommand(query, connection);
+                    transaction = connection.BeginTransaction();
+
+                    SqlCommand command = new SqlCommand("UpdateMeja", connection, transaction);
+                    command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@meja_id", selectedMejaId);
                     command.Parameters.AddWithValue("@nomor_meja", nomorMeja);
                     command.Parameters.AddWithValue("@kapasitas", kapasitasFormatted);
                     command.Parameters.AddWithValue("@status_meja", cmbStatusMeja.Text);
-                    command.ExecuteNonQuery();
 
-                    MessageBox.Show("Data berhasil diupdate!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    ClearFields();
-                    LoadData();
-                    selectedMejaId = 0;
+                    int result = command.ExecuteNonQuery();
+                    if (result > 0)
+                    {
+                        transaction.Commit();
+                        _cache.Remove(CacheKey);
+                        MessageBox.Show("Data meja berhasil diupdate!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadData();
+                        ClearFields();
+                    }
+                    else
+                    {
+                        throw new Exception("Data tidak ditemukan atau gagal diperbarui.");
+                    }
                 }
-            }
-            catch (SqlException ex)
-            {
-                if (ex.Number == 2627 || ex.Number == 2601) // Unique constraint error
+                catch (SqlException sqlEx) when (sqlEx.Number == 2627 || sqlEx.Number == 2601)
                 {
-                    MessageBox.Show("Nomor meja sudah digunakan!", "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    transaction?.Rollback();
+                    MessageBox.Show("Nomor meja sudah digunakan oleh meja lain.", "Error Duplikat", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-                else
+                catch (Exception ex)
                 {
-                    MessageBox.Show("Error updating data: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    transaction?.Rollback();
+                    MessageBox.Show("Terjadi kesalahan saat memperbarui data. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // Delete selected table record
         private void btnDelete_Click(object sender, EventArgs e)
         {
-            try
+            if (selectedMejaId == 0)
             {
-                if (selectedMejaId == 0)
-                {
-                    MessageBox.Show("Pilih data yang akan dihapus!", "Selection Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
+                MessageBox.Show("Pilih meja yang akan dihapus!", "Peringatan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
-                DialogResult result = MessageBox.Show("Anda yakin ingin menghapus data ini?", "Confirmation", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (result == DialogResult.Yes)
+            DialogResult confirm = MessageBox.Show("Anda yakin ingin menghapus meja ini?", "Konfirmasi Hapus", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm == DialogResult.Yes)
+            {
+                // Menggunakan kn.connectionString()
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
                 {
-                    using (connection = new SqlConnection(connectionString))
+                    SqlTransaction transaction = null;
+                    try
                     {
                         connection.Open();
-                        string query = "DELETE FROM Meja WHERE meja_id = @meja_id";
-                        command = new SqlCommand(query, connection);
-                        command.Parameters.AddWithValue("@meja_id", selectedMejaId);
-                        command.ExecuteNonQuery();
+                        transaction = connection.BeginTransaction();
 
-                        MessageBox.Show("Data berhasil dihapus!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        ClearFields();
-                        LoadData();
-                        selectedMejaId = 0;
+                        SqlCommand command = new SqlCommand("DeleteMeja", connection, transaction);
+                        command.CommandType = CommandType.StoredProcedure;
+                        command.Parameters.AddWithValue("@meja_id", selectedMejaId);
+
+                        int result = command.ExecuteNonQuery();
+                        if (result > 0)
+                        {
+                            transaction.Commit();
+                            _cache.Remove(CacheKey);
+                            MessageBox.Show("Data meja berhasil dihapus!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            LoadData();
+                            ClearFields();
+                        }
+                        else
+                        {
+                            throw new Exception("Data tidak ditemukan di database.");
+                        }
+                    }
+                    catch (SqlException sqlEx) when (sqlEx.Number == 547)
+                    {
+                        transaction?.Rollback();
+                        MessageBox.Show("Gagal menghapus. Meja ini mungkin sedang digunakan dalam data reservasi.", "Error Hapus", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                    catch (Exception ex)
+                    {
+                        transaction?.Rollback();
+                        MessageBox.Show("Terjadi kesalahan umum. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
-            catch (Exception ex)
+        }
+
+        private void btnRefresh_Click(object sender, EventArgs e)
+        {
+            _cache.Remove(CacheKey);
+            LoadData();
+            ClearFields();
+        }
+
+        private void EnsureIndexes()
+        {
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
-                MessageBox.Show("Error deleting data: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                conn.Open();
+                var indexScript = @"
+                IF OBJECT_ID('dbo.Meja', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Meja_Status')
+                        CREATE NONCLUSTERED INDEX idx_Meja_Status ON dbo.Meja(status_meja);
+                END";
+                using (var cmd = new SqlCommand(indexScript, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
 
-        // Refresh the data in DataGridView
-        private void btnRefresh_Click(object sender, EventArgs e)
-        {
-            ClearFields();
-            LoadData();
-            selectedMejaId = 0;
-        }
-
-        // Handle cell click in DataGridView to select a record
-        private void dgcMeja_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void LoadData()
         {
             try
             {
-                if (e.RowIndex >= 0)
+                DataTable mejaDataTable;
+                if (_cache.Contains(CacheKey))
                 {
-                    DataGridViewRow row = dgcMeja.Rows[e.RowIndex];
-                    selectedMejaId = Convert.ToInt32(row.Cells["meja_id"].Value);
-                    txtNomorMeja.Text = row.Cells["nomor_meja"].Value.ToString();
-
-                    // Remove " orang" text from kapasitas for the textbox
-                    string kapasitas = row.Cells["kapasitas"].Value.ToString().Trim();
-                    txtKapasitas.Text = kapasitas.Replace(" orang", "");
-
-                    cmbStatusMeja.Text = row.Cells["status_meja"].Value.ToString();
+                    mejaDataTable = _cache.Get(CacheKey) as DataTable;
                 }
+                else
+                {
+                    mejaDataTable = new DataTable();
+                    // Menggunakan kn.connectionString()
+                    using (var connection = new SqlConnection(kn.connectionString()))
+                    {
+                        var query = "SELECT meja_id, nomor_meja, kapasitas, status_meja FROM Meja";
+                        using (var adapter = new SqlDataAdapter(query, connection))
+                        {
+                            adapter.Fill(mejaDataTable);
+                        }
+                    }
+                    _cache.Add(CacheKey, mejaDataTable, _cachePolicy);
+                }
+
+                dgcMeja.DataSource = mejaDataTable;
+                dgcMeja.Columns["meja_id"].Visible = false;
+                dgcMeja.Columns["nomor_meja"].HeaderText = "Nomor Meja";
+                dgcMeja.Columns["kapasitas"].HeaderText = "Kapasitas";
+                dgcMeja.Columns["status_meja"].HeaderText = "Status Meja";
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error selecting data: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Error memuat data meja: " + ex.Message, "Data Loading Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        // Clear all input fields
         private void ClearFields()
         {
             txtNomorMeja.Clear();
             txtKapasitas.Clear();
             cmbStatusMeja.SelectedIndex = 0;
+            selectedMejaId = 0;
+            dgcMeja.ClearSelection();
             txtNomorMeja.Focus();
         }
 
-        // Format kapasitas to match CHECK constraint (X orang)
-        private string FormatKapasitas(string input)
+        private bool ValidateInput(out int nomorMeja, out string kapasitasFormatted)
         {
-            // Remove any non-digit characters
-            string digits = new string(input.Where(char.IsDigit).ToArray());
+            nomorMeja = 0;
+            kapasitasFormatted = null;
 
-            // Format as "X orang"
-            string result = digits + " orang";
-
-            // Ensure it fits the CHAR(9) constraint
-            if (result.Length > 9)
+            if (string.IsNullOrWhiteSpace(txtNomorMeja.Text) || !int.TryParse(txtNomorMeja.Text, out nomorMeja) || nomorMeja <= 0)
             {
-                result = result.Substring(0, 9);
+                MessageBox.Show("Nomor meja harus diisi dengan angka positif!", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
             }
 
-            return result;
+            if (string.IsNullOrWhiteSpace(txtKapasitas.Text) || !int.TryParse(txtKapasitas.Text, out int kapasitas) || kapasitas <= 0)
+            {
+                MessageBox.Show("Kapasitas harus diisi dengan angka positif!", "Input Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            kapasitasFormatted = FormatKapasitas(txtKapasitas.Text);
+            return true;
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private string FormatKapasitas(string input)
         {
-
+            string digits = new string(input.Where(char.IsDigit).ToArray());
+            string result = digits + " orang";
+            return result.Length > 9 ? result.Substring(0, 9) : result;
         }
     }
 }

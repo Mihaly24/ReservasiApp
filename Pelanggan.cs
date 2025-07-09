@@ -9,7 +9,8 @@ namespace Project
 {
     public partial class Pelanggan : Form
     {
-        private readonly string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
+        // Membuat instance dari kelas Koneksi
+        private Koneksi kn = new Koneksi();
         private int selectedPelangganId = 0;
 
         private readonly ObjectCache _cache = MemoryCache.Default;
@@ -54,7 +55,8 @@ namespace Project
 
         private void AnalyzeQuery(string query)
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString() untuk koneksi
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
                 conn.Open();
@@ -79,7 +81,8 @@ namespace Project
                 return;
             }
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString() untuk koneksi
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
                 try
@@ -124,7 +127,8 @@ namespace Project
                 return;
             }
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString() untuk koneksi
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
                 try
@@ -173,7 +177,8 @@ namespace Project
             DialogResult result = MessageBox.Show("Apakah Anda yakin ingin menghapus pelanggan ini?", "Konfirmasi Hapus", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (result == DialogResult.Yes)
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                // Menggunakan kn.connectionString() untuk koneksi
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
                 {
                     SqlTransaction transaction = null;
                     try
@@ -231,7 +236,8 @@ namespace Project
 
         private void EnsureIndexes()
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString() untuk koneksi
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.Open();
                 var indexScript = @"
@@ -259,7 +265,8 @@ namespace Project
                 else
                 {
                     pelangganDataTable = new DataTable();
-                    using (var connection = new SqlConnection(connectionString))
+                    // Menggunakan kn.connectionString() untuk koneksi
+                    using (var connection = new SqlConnection(kn.connectionString()))
                     {
                         connection.Open();
                         var query = "SELECT pelanggan_id, nama, email, no_telp, alamat FROM dbo.Pelanggan";

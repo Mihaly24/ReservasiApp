@@ -9,7 +9,8 @@ namespace Project
 {
     public partial class StaffRestoran : Form
     {
-        private readonly string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True";
+        // Menambahkan instance Koneksi
+        private Koneksi kn = new Koneksi();
         private int selectedStaffId = 0;
 
         private readonly ObjectCache _cache = MemoryCache.Default;
@@ -24,11 +25,10 @@ namespace Project
             InitializeComponent();
         }
 
-
         private void StaffRestoran_Load(object sender, EventArgs e)
         {
             EnsureIndexes();
-            LoadStaffData(); 
+            LoadStaffData();
             dgvStaff.SelectionChanged += DgvStaff_SelectionChanged;
         }
 
@@ -47,7 +47,8 @@ namespace Project
 
         private void AnalyzeQuery(string query)
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.InfoMessage += (s, e) => MessageBox.Show(e.Message, "STATISTIC INFO");
                 conn.Open();
@@ -72,7 +73,8 @@ namespace Project
                 return;
             }
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
                 try
@@ -117,7 +119,8 @@ namespace Project
                 return;
             }
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
                 SqlTransaction transaction = null;
                 try
@@ -167,7 +170,8 @@ namespace Project
             DialogResult confirm = MessageBox.Show("Apakah Anda yakin ingin menghapus staff ini?", "Konfirmasi Hapus", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             if (confirm == DialogResult.Yes)
             {
-                using (SqlConnection connection = new SqlConnection(connectionString))
+                // Menggunakan kn.connectionString()
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
                 {
                     SqlTransaction transaction = null;
                     try
@@ -211,7 +215,6 @@ namespace Project
 
         private void BtnAnalyze_Click(object sender, EventArgs e)
         {
-            // Menganalisis query yang mencari staff dengan posisi 'kasir'
             var heavyQuery = "SELECT nama, username, posisi FROM dbo.Staff_Restoran WHERE posisi = 'kasir'";
             AnalyzeQuery(heavyQuery);
         }
@@ -224,7 +227,8 @@ namespace Project
 
         private void EnsureIndexes()
         {
-            using (var conn = new SqlConnection(connectionString))
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
             {
                 conn.Open();
                 var indexScript = @"
@@ -252,7 +256,8 @@ namespace Project
                 else
                 {
                     staffDataTable = new DataTable();
-                    using (var connection = new SqlConnection(connectionString))
+                    // Menggunakan kn.connectionString()
+                    using (var connection = new SqlConnection(kn.connectionString()))
                     {
                         connection.Open();
                         var query = "SELECT staff_id, nama, posisi, username, passwords, no_telp FROM dbo.Staff_Restoran";
@@ -281,7 +286,6 @@ namespace Project
             selectedStaffId = 0;
         }
 
-        // Metode validasi input dari kode asli Anda, tetap relevan.
         private bool ValidateInput(out string errorMessage)
         {
             errorMessage = string.Empty;

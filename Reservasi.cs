@@ -1,525 +1,395 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Runtime.Caching;
 
 namespace Project
 {
     public partial class Reservasi : Form
     {
-        private SqlConnection conn;
-        private string connectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;Integrated Security=True"; //
-        private int selectedReservasiId = 0; //
+        // Menambahkan instance Koneksi
+        private Koneksi kn = new Koneksi();
+        private int selectedReservasiId = 0;
+
+        private readonly ObjectCache _cache = MemoryCache.Default;
+        private readonly CacheItemPolicy _cachePolicy = new CacheItemPolicy
+        {
+            AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(5)
+        };
+        private const string ReservasiCacheKey = "ReservasiDataCache";
+        private const string PelangganCacheKey = "PelangganForReservasiCache";
+        private const string MejaCacheKey = "MejaForReservasiCache";
 
         public Reservasi()
         {
             InitializeComponent();
-            conn = new SqlConnection(connectionString); //
-
-            // Initialize the form
-            InitializeForm(); //
-
-            // Add event handlers
-            this.Load += Reservasi_Load; //
-            if (dgvReservasi != null)
-            {
-                dgvReservasi.CellClick += DgvReservasi_CellClick; //
-            }
         }
 
         private void Reservasi_Load(object sender, EventArgs e)
         {
-            LoadPelanggan(); //
-            LoadMeja(); //
-            LoadReservasi(); //
-
-            // Set default values and constraints for date and time pickers
-            if (dtpTanggal != null)
-            {
-                dtpTanggal.MinDate = DateTime.Today; // Set minimum date to today
-                dtpTanggal.MaxDate = DateTime.Today.AddMonths(3); // Set maximum date to 3 months from today
-                dtpTanggal.Value = DateTime.Today; //
-            }
-
-            if (dtpWaktu != null)
-            {
-                dtpWaktu.Value = DateTime.Now; //
-            }
-
-            if (cmbStatus != null && cmbStatus.Items.Count > 0)
-            {
-                cmbStatus.SelectedIndex = 0; // 'Pending' //
-            }
-            else if (cmbStatus != null)
-            {
-                // Optional: Add items if they are not added in the designer
-                // cmbStatus.Items.AddRange(new object[] { "Pending", "Confirmed", "Cancelled" });
-                // cmbStatus.SelectedIndex = 0;
-            }
+            EnsureIndexes();
+            LoadAllData();
+            dtpTanggal.MinDate = DateTime.Today;
+            if (dgvReservasi != null) dgvReservasi.CellClick += DgvReservasi_CellClick;
         }
 
-        private void InitializeForm()
+        private void DgvReservasi_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            if (dgvReservasi != null)
+            if (e.RowIndex >= 0)
             {
-                // Setup DataGridView
-                dgvReservasi.SelectionMode = DataGridViewSelectionMode.FullRowSelect; //
-                dgvReservasi.ReadOnly = true; //
-                dgvReservasi.AllowUserToAddRows = false; //
-                dgvReservasi.MultiSelect = false; //
-            }
-        }
-
-        private void LoadPelanggan()
-        {
-            if (cmbPelangganID == null) return;
-
-            using (SqlConnection localConn = new SqlConnection(connectionString)) //
-            {
-                try
-                {
-                    localConn.Open(); //
-                    string query = "SELECT pelanggan_id, nama FROM Pelanggan"; //
-                    SqlCommand cmd = new SqlCommand(query, localConn); //
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd); //
-                    DataTable dt = new DataTable(); //
-                    adapter.Fill(dt); //
-
-                    cmbPelangganID.DataSource = dt; //
-                    cmbPelangganID.DisplayMember = "nama"; //
-                    cmbPelangganID.ValueMember = "pelanggan_id"; //
-                    cmbPelangganID.SelectedIndex = -1; //
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error loading customers: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error); //
-                }
-                // finally block with conn.Close() is not strictly needed due to 'using' statement.
-            }
-        }
-
-        private void LoadMeja()
-        {
-            if (cmbMejaID == null) return;
-
-            using (SqlConnection localConn = new SqlConnection(connectionString)) //
-            {
-                try
-                {
-                    localConn.Open(); //
-                    string query = "SELECT meja_id, nomor_meja FROM Meja WHERE status_meja = 'Tersedia'"; //
-                    SqlCommand cmd = new SqlCommand(query, localConn); //
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd); //
-                    DataTable dt = new DataTable(); //
-                    adapter.Fill(dt); //
-
-                    cmbMejaID.DataSource = dt; //
-                    cmbMejaID.DisplayMember = "nomor_meja"; //
-                    cmbMejaID.ValueMember = "meja_id"; //
-                    cmbMejaID.SelectedIndex = -1; //
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error loading tables: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error); //
-                }
-            }
-        }
-
-        private void LoadReservasi()
-        {
-            if (dgvReservasi == null) return;
-
-            using (SqlConnection localConn = new SqlConnection(connectionString)) //
-            {
-                try
-                {
-                    localConn.Open(); //
-                    string query = @"SELECT r.reservasi_id, p.nama AS Pelanggan, m.nomor_meja AS Meja, 
-                       r.tanggal, 
-                       CONVERT(VARCHAR(5), r.waktu, 108) AS waktu_formatted, -- Convert TIME to string (HH:mm)
-                       r.status_reservasi 
-                       FROM Reservasi r
-                       LEFT JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id
-                       LEFT JOIN Meja m ON r.meja_id = m.meja_id
-                       ORDER BY r.tanggal DESC, r.waktu DESC"; //
-                    SqlCommand cmd = new SqlCommand(query, localConn); //
-                    SqlDataAdapter adapter = new SqlDataAdapter(cmd); //
-                    DataTable dt = new DataTable(); //
-                    adapter.Fill(dt); //
-
-                    dgvReservasi.DataSource = dt; //
-
-                    // Hide the original "waktu" column if it still exists
-                    if (dgvReservasi.Columns.Contains("waktu") && dgvReservasi.Columns["waktu"] != null) //
-                        dgvReservasi.Columns["waktu"].Visible = false; //
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error loading reservations: " + ex.Message); //
-                }
+                PopulateFormFromGrid(e.RowIndex);
             }
         }
 
         private void BtnAdd_Click(object sender, EventArgs e)
         {
-            if (cmbPelangganID == null || cmbMejaID == null || cmbStatus == null || dtpTanggal == null || dtpWaktu == null) return;
+            if (!ValidateInput()) return;
 
-            if (cmbPelangganID.SelectedIndex == -1 || cmbMejaID.SelectedIndex == -1 || cmbStatus.SelectedIndex == -1) //
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
-                MessageBox.Show("Please select customer, table, and status", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); //
-                return; //
-            }
-
-            // Validate date
-            if (dtpTanggal.Value < DateTime.Today || dtpTanggal.Value > DateTime.Today.AddMonths(3))
-            {
-                MessageBox.Show($"Please select a date between {DateTime.Today:d} and {DateTime.Today.AddMonths(3):d}.", "Date Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                if (conn.State != ConnectionState.Open) conn.Open(); //
-                string query = @"INSERT INTO Reservasi (pelanggan_id, meja_id, tanggal, waktu, status_reservasi) 
-                               VALUES (@pelanggan_id, @meja_id, @tanggal, @waktu, @status)"; //
-
-                SqlCommand cmd = new SqlCommand(query, conn); //
-                cmd.Parameters.AddWithValue("@pelanggan_id", cmbPelangganID.SelectedValue); //
-                cmd.Parameters.AddWithValue("@meja_id", cmbMejaID.SelectedValue); //
-                cmd.Parameters.AddWithValue("@tanggal", dtpTanggal.Value.Date); //
-                cmd.Parameters.AddWithValue("@waktu", dtpWaktu.Value.TimeOfDay); //
-                cmd.Parameters.AddWithValue("@status", cmbStatus.Text); //
-
-                cmd.ExecuteNonQuery(); //
-                MessageBox.Show("Reservation added successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information); //
-
-                if (cmbStatus.Text == "Confirmed") //
+                SqlTransaction transaction = null;
+                try
                 {
-                    UpdateTableStatus((int)cmbMejaID.SelectedValue, "Tidak Tersedia"); //
-                }
+                    connection.Open();
+                    transaction = connection.BeginTransaction();
 
-                ClearForm(); //
-                LoadReservasi(); //
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error adding reservation: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error); //
-            }
-            finally
-            {
-                if (conn.State == ConnectionState.Open) conn.Close(); //
+                    var cmd = new SqlCommand("AddReservasi", connection, transaction) { CommandType = CommandType.StoredProcedure };
+                    cmd.Parameters.AddWithValue("@pelanggan_id", cmbPelangganID.SelectedValue);
+                    cmd.Parameters.AddWithValue("@meja_id", cmbMejaID.SelectedValue);
+                    cmd.Parameters.AddWithValue("@tanggal", dtpTanggal.Value.Date);
+                    cmd.Parameters.AddWithValue("@waktu", dtpWaktu.Value.TimeOfDay);
+                    cmd.Parameters.AddWithValue("@status_reservasi", cmbStatus.Text);
+                    cmd.ExecuteNonQuery();
+
+                    if (cmbStatus.Text == "Confirmed")
+                    {
+                        UpdateTableStatus((int)cmbMejaID.SelectedValue, "Tidak Tersedia", connection, transaction);
+                    }
+
+                    transaction.Commit();
+
+                    InvalidateCaches();
+                    MessageBox.Show("Reservasi berhasil ditambahkan!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadAllData();
+                }
+                catch (Exception ex)
+                {
+                    transaction?.Rollback();
+                    MessageBox.Show("Terjadi kesalahan. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
         private void BtnUpdate_Click(object sender, EventArgs e)
         {
-            if (cmbPelangganID == null || cmbMejaID == null || cmbStatus == null || dtpTanggal == null || dtpWaktu == null) return;
-
-            if (selectedReservasiId == 0) //
+            if (selectedReservasiId == 0)
             {
-                MessageBox.Show("Please select a reservation to update", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); //
-                return; //
-            }
-
-            if (cmbPelangganID.SelectedIndex == -1 || cmbMejaID.SelectedIndex == -1 || cmbStatus.SelectedIndex == -1) //
-            {
-                MessageBox.Show("Please select customer, table, and status", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); //
-                return; //
-            }
-
-            // Validate date
-            if (dtpTanggal.Value < dtpTanggal.MinDate || dtpTanggal.Value > dtpTanggal.MaxDate) // Check against actual MinDate/MaxDate
-            {
-                MessageBox.Show($"Please select a date between {dtpTanggal.MinDate:d} and {dtpTanggal.MaxDate:d}.", "Date Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Pilih reservasi yang akan diupdate.", "Peringatan", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+            if (!ValidateInput()) return;
 
-
-            try
+            // Menggunakan kn.connectionString()
+            using (SqlConnection connection = new SqlConnection(kn.connectionString()))
             {
-                if (conn.State != ConnectionState.Open) conn.Open(); //
-
-                SqlCommand getCmd = new SqlCommand("SELECT meja_id, status_reservasi FROM Reservasi WHERE reservasi_id = @id", conn); //
-                getCmd.Parameters.AddWithValue("@id", selectedReservasiId); //
-                SqlDataReader reader = getCmd.ExecuteReader(); //
-
-                int currentMejaId = 0; //
-                string currentStatus = string.Empty; //
-                if (reader.Read()) //
+                SqlTransaction transaction = null;
+                try
                 {
-                    if (!reader.IsDBNull(0)) //
-                        currentMejaId = reader.GetInt32(0); //
-                    currentStatus = reader.GetString(1); //
+                    connection.Open();
+                    transaction = connection.BeginTransaction();
+
+                    var getCmd = new SqlCommand("SELECT meja_id, status_reservasi FROM Reservasi WHERE reservasi_id = @id", connection, transaction);
+                    getCmd.Parameters.AddWithValue("@id", selectedReservasiId);
+                    int oldMejaId = 0;
+                    string oldStatus = "";
+                    using (var reader = getCmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            oldMejaId = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                            oldStatus = reader.GetString(1);
+                        }
+                    }
+
+                    var updateCmd = new SqlCommand("UpdateReservasi", connection, transaction) { CommandType = CommandType.StoredProcedure };
+                    updateCmd.Parameters.AddWithValue("@reservasi_id", selectedReservasiId);
+                    updateCmd.Parameters.AddWithValue("@pelanggan_id", cmbPelangganID.SelectedValue);
+                    updateCmd.Parameters.AddWithValue("@meja_id", cmbMejaID.SelectedValue);
+                    updateCmd.Parameters.AddWithValue("@tanggal", dtpTanggal.Value.Date);
+                    updateCmd.Parameters.AddWithValue("@waktu", dtpWaktu.Value.TimeOfDay);
+                    updateCmd.Parameters.AddWithValue("@status_reservasi", cmbStatus.Text);
+                    updateCmd.ExecuteNonQuery();
+
+                    int newMejaId = (int)cmbMejaID.SelectedValue;
+                    string newStatus = cmbStatus.Text;
+                    if (oldMejaId != 0 && oldMejaId != newMejaId)
+                    {
+                        UpdateTableStatus(oldMejaId, "Tersedia", connection, transaction);
+                    }
+                    if (newStatus == "Confirmed")
+                    {
+                        UpdateTableStatus(newMejaId, "Tidak Tersedia", connection, transaction);
+                    }
+                    else if (oldStatus == "Confirmed" && (newStatus == "Pending" || newStatus == "Cancelled"))
+                    {
+                        UpdateTableStatus(newMejaId, "Tersedia", connection, transaction);
+                    }
+
+                    transaction.Commit();
+
+                    InvalidateCaches();
+                    MessageBox.Show("Reservasi berhasil diperbarui!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    LoadAllData();
                 }
-                reader.Close(); //
-
-                string query = @"UPDATE Reservasi 
-                               SET pelanggan_id = @pelanggan_id, 
-                                   meja_id = @meja_id, 
-                                   tanggal = @tanggal, 
-                                   waktu = @waktu, 
-                                   status_reservasi = @status
-                               WHERE reservasi_id = @id"; //
-
-                SqlCommand cmd = new SqlCommand(query, conn); //
-                cmd.Parameters.AddWithValue("@pelanggan_id", cmbPelangganID.SelectedValue); //
-                cmd.Parameters.AddWithValue("@meja_id", cmbMejaID.SelectedValue); //
-                cmd.Parameters.AddWithValue("@tanggal", dtpTanggal.Value.Date); //
-                cmd.Parameters.AddWithValue("@waktu", dtpWaktu.Value.TimeOfDay); //
-                cmd.Parameters.AddWithValue("@status", cmbStatus.Text); //
-                cmd.Parameters.AddWithValue("@id", selectedReservasiId); //
-
-                cmd.ExecuteNonQuery(); //
-                MessageBox.Show("Reservation updated successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information); //
-
-                int newMejaId = (int)cmbMejaID.SelectedValue; //
-                string newStatus = cmbStatus.Text; //
-
-                if (currentMejaId > 0 && currentMejaId != newMejaId) //
+                catch (Exception ex)
                 {
-                    UpdateTableStatus(currentMejaId, "Tersedia"); // Changed "Available" to "Tersedia" for consistency
+                    transaction?.Rollback();
+                    MessageBox.Show("Terjadi kesalahan. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
-
-                if (newStatus == "Confirmed") //
-                {
-                    UpdateTableStatus(newMejaId, "Tidak Tersedia"); //
-                }
-                else if (currentStatus == "Confirmed" && (newStatus == "Pending" || newStatus == "Cancelled")) // Consider "Cancelled" too
-                {
-                    UpdateTableStatus(newMejaId, "Tersedia"); //
-                }
-
-                ClearForm(); //
-                LoadReservasi(); //
-                selectedReservasiId = 0; //
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error updating reservation: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error); //
-            }
-            finally
-            {
-                if (conn.State == ConnectionState.Open) conn.Close(); //
             }
         }
 
         private void BtnDelete_Click(object sender, EventArgs e)
         {
-            if (selectedReservasiId == 0) //
+            if (selectedReservasiId == 0) { MessageBox.Show("Pilih reservasi untuk dihapus."); return; }
+
+            DialogResult confirm = MessageBox.Show("Anda yakin ingin menghapus reservasi ini?", "Konfirmasi Hapus", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (confirm == DialogResult.Yes)
             {
-                MessageBox.Show("Please select a reservation to delete", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); //
-                return; //
-            }
-
-            DialogResult result = MessageBox.Show("Are you sure you want to delete this reservation?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question); //
-            if (result == DialogResult.Yes) //
-            {
-                try
+                // Menggunakan kn.connectionString()
+                using (SqlConnection connection = new SqlConnection(kn.connectionString()))
                 {
-                    if (conn.State != ConnectionState.Open) conn.Open(); //
-
-                    SqlCommand getCmd = new SqlCommand("SELECT meja_id, status_reservasi FROM Reservasi WHERE reservasi_id = @id", conn); //
-                    getCmd.Parameters.AddWithValue("@id", selectedReservasiId); //
-                    SqlDataReader reader = getCmd.ExecuteReader(); //
-
-                    int mejaId = 0; //
-                    string status = string.Empty; //
-                    if (reader.Read()) //
+                    SqlTransaction transaction = null;
+                    try
                     {
-                        if (!reader.IsDBNull(0)) //
-                            mejaId = reader.GetInt32(0); //
-                        status = reader.GetString(1); //
+                        connection.Open();
+                        transaction = connection.BeginTransaction();
+
+                        var getCmd = new SqlCommand("SELECT meja_id, status_reservasi FROM Reservasi WHERE reservasi_id = @id", connection, transaction);
+                        getCmd.Parameters.AddWithValue("@id", selectedReservasiId);
+                        int mejaId = 0;
+                        string status = "";
+                        using (var reader = getCmd.ExecuteReader())
+                        {
+                            if (reader.Read()) { mejaId = reader.IsDBNull(0) ? 0 : reader.GetInt32(0); status = reader.GetString(1); }
+                        }
+
+                        var deleteCmd = new SqlCommand("DeleteReservasi", connection, transaction) { CommandType = CommandType.StoredProcedure };
+                        deleteCmd.Parameters.AddWithValue("@reservasi_id", selectedReservasiId);
+                        deleteCmd.ExecuteNonQuery();
+
+                        if (mejaId != 0 && status == "Confirmed")
+                        {
+                            UpdateTableStatus(mejaId, "Tersedia", connection, transaction);
+                        }
+
+                        transaction.Commit();
+
+                        InvalidateCaches();
+                        MessageBox.Show("Reservasi berhasil dihapus!", "Sukses", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        LoadAllData();
                     }
-                    reader.Close(); //
-
-                    string query = "DELETE FROM Reservasi WHERE reservasi_id = @id"; //
-                    SqlCommand cmd = new SqlCommand(query, conn); //
-                    cmd.Parameters.AddWithValue("@id", selectedReservasiId); //
-                    cmd.ExecuteNonQuery(); //
-
-                    if (mejaId > 0 && status == "Confirmed") //
+                    catch (Exception ex)
                     {
-                        UpdateTableStatus(mejaId, "Tersedia"); //
+                        transaction?.Rollback();
+                        MessageBox.Show("Terjadi kesalahan. Perubahan dibatalkan.\nError: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
-
-                    MessageBox.Show("Reservation deleted successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information); //
-                    ClearForm(); //
-                    LoadReservasi(); //
-                    selectedReservasiId = 0; //
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error deleting reservation: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error); //
-                }
-                finally
-                {
-                    if (conn.State == ConnectionState.Open) conn.Close(); //
                 }
             }
         }
 
         private void BtnRefresh_Click(object sender, EventArgs e)
         {
-            LoadPelanggan(); //
-            LoadMeja(); //
-            LoadReservasi(); //
-            ClearForm(); //
-            selectedReservasiId = 0; //
+            InvalidateCaches();
+            LoadAllData();
         }
 
-        private void DgvReservasi_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void EnsureIndexes()
         {
-            if (e.RowIndex < 0) return; //
-            if (dgvReservasi == null || cmbPelangganID == null || cmbMejaID == null || dtpTanggal == null || dtpWaktu == null || cmbStatus == null) return;
+            // Menggunakan kn.connectionString()
+            using (var conn = new SqlConnection(kn.connectionString()))
+            {
+                conn.Open();
+                var indexScript = @"
+                IF OBJECT_ID('dbo.Reservasi', 'U') IS NOT NULL
+                BEGIN
+                    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Reservasi_Tanggal')
+                        CREATE NONCLUSTERED INDEX idx_Reservasi_Tanggal ON dbo.Reservasi(tanggal);
+                    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Reservasi_Status')
+                        CREATE NONCLUSTERED INDEX idx_Reservasi_Status ON dbo.Reservasi(status_reservasi);
+                    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_Reservasi_PelangganId')
+                        CREATE NONCLUSTERED INDEX idx_Reservasi_PelangganId ON dbo.Reservasi(pelanggan_id);
+                END";
+                using (var cmd = new SqlCommand(indexScript, conn)) { cmd.ExecuteNonQuery(); }
+            }
+        }
 
-
+        private void LoadPelanggan()
+        {
             try
             {
-                DataGridViewRow row = dgvReservasi.Rows[e.RowIndex]; //
-                selectedReservasiId = Convert.ToInt32(row.Cells["reservasi_id"].Value); //
-
-                using (SqlConnection localConn = new SqlConnection(connectionString)) //
+                DataTable dt;
+                if (_cache.Contains(PelangganCacheKey)) { dt = _cache.Get(PelangganCacheKey) as DataTable; }
+                else
                 {
-                    localConn.Open(); //
-                    string query = "SELECT pelanggan_id, meja_id, tanggal, waktu, status_reservasi FROM Reservasi WHERE reservasi_id = @id"; //
-                    SqlCommand cmd = new SqlCommand(query, localConn); //
-                    cmd.Parameters.AddWithValue("@id", selectedReservasiId); //
-                    SqlDataReader reader = cmd.ExecuteReader(); //
-
-                    if (reader.Read()) //
+                    dt = new DataTable();
+                    // Menggunakan kn.connectionString()
+                    using (var adapter = new SqlDataAdapter("SELECT pelanggan_id, nama FROM Pelanggan ORDER BY nama", kn.connectionString()))
                     {
-                        if (!reader.IsDBNull(0)) //
-                            cmbPelangganID.SelectedValue = reader.GetInt32(0); //
-                        else
-                            cmbPelangganID.SelectedIndex = -1; //
-
-                        if (!reader.IsDBNull(1)) //
-                        {
-                            // Temporarily load all tables to find the selected one if it's not 'Tersedia'
-                            LoadAllMejaForSelection(reader.GetInt32(1));
-                            cmbMejaID.SelectedValue = reader.GetInt32(1); //
-                        }
-                        else
-                            cmbMejaID.SelectedIndex = -1; //
-
-                        DateTime reservationDate = reader.GetDateTime(2); //
-                        // Check if the reservationDate is within the current Min/Max range of dtpTanggal
-                        if (reservationDate >= dtpTanggal.MinDate && reservationDate <= dtpTanggal.MaxDate)
-                        {
-                            dtpTanggal.Value = reservationDate;
-                        }
-                        else
-                        {
-                            // If out of range, you might want to set it to MinDate or MaxDate,
-                            // or inform the user. For now, let DateTimePicker clamp it.
-                            // Or, temporarily adjust Min/Max to show the actual date.
-                            // For simplicity here, we just assign. DateTimePicker will clamp.
-                            dtpTanggal.Value = reservationDate;
-                            // Optionally, inform user:
-                            // MessageBox.Show($"The selected reservation date ({reservationDate:d}) is outside the editable range. It will be clamped if you try to modify other fields and save.", "Date Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-
-
-                        TimeSpan time = reader.GetTimeSpan(3); //
-                        dtpWaktu.Value = DateTime.Today.Add(time); //
-
-                        cmbStatus.Text = reader.GetString(4); //
+                        adapter.Fill(dt);
                     }
-                    reader.Close(); //
+                    _cache.Add(PelangganCacheKey, dt, _cachePolicy);
                 }
+                cmbPelangganID.DataSource = dt;
+                cmbPelangganID.DisplayMember = "nama";
+                cmbPelangganID.ValueMember = "pelanggan_id";
+            }
+            catch (Exception ex) { MessageBox.Show("Error loading customers: " + ex.Message); }
+        }
+
+        private void LoadMeja(int? mejaIdUntukDitampilkan = null)
+        {
+            try
+            {
+                DataTable dt;
+                string cacheKey = MejaCacheKey + (mejaIdUntukDitampilkan?.ToString() ?? "");
+
+                if (_cache.Contains(cacheKey)) { dt = _cache.Get(cacheKey) as DataTable; }
+                else
+                {
+                    dt = new DataTable();
+                    string query = "SELECT meja_id, nomor_meja FROM Meja WHERE status_meja = 'Tersedia'";
+                    if (mejaIdUntukDitampilkan.HasValue)
+                    {
+                        query += $" OR meja_id = {mejaIdUntukDitampilkan.Value}";
+                    }
+                    // Menggunakan kn.connectionString()
+                    using (var adapter = new SqlDataAdapter(query, kn.connectionString()))
+                    {
+                        adapter.Fill(dt);
+                    }
+                    _cache.Add(cacheKey, dt, _cachePolicy);
+                }
+                cmbMejaID.DataSource = dt;
+                cmbMejaID.DisplayMember = "nomor_meja";
+                cmbMejaID.ValueMember = "meja_id";
+            }
+            catch (Exception ex) { MessageBox.Show("Error loading tables: " + ex.Message); }
+        }
+
+        private void LoadReservasi()
+        {
+            try
+            {
+                DataTable dt;
+                if (_cache.Contains(ReservasiCacheKey)) { dt = _cache.Get(ReservasiCacheKey) as DataTable; }
+                else
+                {
+                    dt = new DataTable();
+                    string query = @"SELECT r.reservasi_id, r.pelanggan_id, r.meja_id, r.tanggal, r.waktu, r.status_reservasi, p.nama AS Pelanggan, m.nomor_meja AS Meja 
+                                   FROM Reservasi r 
+                                   LEFT JOIN Pelanggan p ON r.pelanggan_id = p.pelanggan_id 
+                                   LEFT JOIN Meja m ON r.meja_id = m.meja_id 
+                                   ORDER BY r.tanggal DESC, r.waktu DESC";
+                    // Menggunakan kn.connectionString()
+                    using (var adapter = new SqlDataAdapter(query, kn.connectionString()))
+                    {
+                        adapter.Fill(dt);
+                    }
+                    _cache.Add(ReservasiCacheKey, dt, _cachePolicy);
+                }
+
+                DataTable displayDt = dt.Copy();
+                displayDt.Columns.Add("waktu_formatted", typeof(string));
+                foreach (DataRow row in displayDt.Rows)
+                {
+                    row["waktu_formatted"] = ((TimeSpan)row["waktu"]).ToString(@"hh\:mm");
+                }
+
+                dgvReservasi.DataSource = displayDt;
+
+                string[] columnsToHide = { "reservasi_id", "pelanggan_id", "meja_id", "waktu" };
+                foreach (var colName in columnsToHide)
+                {
+                    if (dgvReservasi.Columns.Contains(colName)) dgvReservasi.Columns[colName].Visible = false;
+                }
+            }
+            catch (Exception ex) { MessageBox.Show("Error loading reservations: " + ex.Message); }
+        }
+
+        private void UpdateTableStatus(int mejaId, string status, SqlConnection connection, SqlTransaction transaction)
+        {
+            try
+            {
+                var cmd = new SqlCommand("UPDATE Meja SET status_meja = @status WHERE meja_id = @id", connection, transaction);
+                cmd.Parameters.AddWithValue("@status", status);
+                cmd.Parameters.AddWithValue("@id", mejaId);
+                cmd.ExecuteNonQuery();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error loading data: " + ex.Message); //
+                throw new Exception("Gagal mengupdate status meja.", ex);
             }
         }
 
-        private void LoadAllMejaForSelection(int selectedMejaId)
+        private void PopulateFormFromGrid(int rowIndex)
         {
-            if (cmbMejaID == null) return;
-            DataTable currentTableSource = cmbMejaID.DataSource as DataTable;
-
-            bool found = false;
-            if (currentTableSource != null)
+            try
             {
-                foreach (DataRow row in currentTableSource.Rows)
-                {
-                    if ((int)row["meja_id"] == selectedMejaId)
-                    {
-                        found = true;
-                        break;
-                    }
-                }
+                DataGridViewRow row = dgvReservasi.Rows[rowIndex];
+                selectedReservasiId = Convert.ToInt32(row.Cells["reservasi_id"].Value);
+
+                int mejaId = row.Cells["meja_id"].Value is DBNull ? 0 : Convert.ToInt32(row.Cells["meja_id"].Value);
+                LoadMeja(mejaId);
+
+                cmbPelangganID.SelectedValue = row.Cells["pelanggan_id"].Value;
+                cmbMejaID.SelectedValue = mejaId;
+                dtpTanggal.Value = Convert.ToDateTime(row.Cells["tanggal"].Value);
+                dtpWaktu.Value = DateTime.Today.Add((TimeSpan)row.Cells["waktu"].Value);
+                cmbStatus.Text = row.Cells["status_reservasi"].Value.ToString();
             }
-
-            if (!found) // If the selectedMejaId is not in the current 'Tersedia' list
+            catch (Exception ex)
             {
-                using (SqlConnection localConn = new SqlConnection(connectionString))
-                {
-                    try
-                    {
-                        localConn.Open();
-                        // Load ALL tables, or at least the selected one plus all 'Tersedia'
-                        string query = $"SELECT meja_id, nomor_meja FROM Meja WHERE status_meja = 'Tersedia' OR meja_id = {selectedMejaId}";
-                        SqlDataAdapter adapter = new SqlDataAdapter(query, localConn);
-                        DataTable dt = new DataTable();
-                        adapter.Fill(dt);
-                        cmbMejaID.DataSource = dt; // Temporarily set to this broader list
-                        // DisplayMember and ValueMember should already be set
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("Error loading specific table for selection: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
+                MessageBox.Show("Error saat memilih baris: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
-
-        private void UpdateTableStatus(int mejaId, string status)
+        private void LoadAllData()
         {
-            using (SqlConnection localConn = new SqlConnection(connectionString)) //
-            {
-                try
-                {
-                    localConn.Open(); //
-                    string query = "UPDATE Meja SET status_meja = @status WHERE meja_id = @id"; //
-                    SqlCommand cmd = new SqlCommand(query, localConn); //
-                    cmd.Parameters.AddWithValue("@status", status); //
-                    cmd.Parameters.AddWithValue("@id", mejaId); //
-                    cmd.ExecuteNonQuery(); //
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error updating table status: " + ex.Message, "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
+            LoadPelanggan();
+            LoadMeja();
+            LoadReservasi();
+            ClearForm();
+        }
+
+        private void InvalidateCaches()
+        {
+            _cache.Remove(ReservasiCacheKey);
+            _cache.Remove(PelangganCacheKey);
+            _cache.Remove(MejaCacheKey);
         }
 
         private void ClearForm()
         {
-            if (cmbPelangganID != null) cmbPelangganID.SelectedIndex = -1; //
-            if (cmbMejaID != null)
-            {
-                // Reload only available tables after clearing
-                LoadMeja(); // This ensures cmbMejaID only shows 'Tersedia' tables
-                cmbMejaID.SelectedIndex = -1; //
-            }
-            if (dtpTanggal != null) dtpTanggal.Value = DateTime.Today; //
-            if (dtpWaktu != null) dtpWaktu.Value = DateTime.Now; //
-            if (cmbStatus != null && cmbStatus.Items.Count > 0) cmbStatus.SelectedIndex = 0; //
-            selectedReservasiId = 0; //
+            cmbPelangganID.SelectedIndex = -1;
+            cmbMejaID.SelectedIndex = -1;
+            dtpTanggal.Value = DateTime.Today;
+            dtpWaktu.Value = DateTime.Now;
+            cmbStatus.SelectedIndex = 0;
+            selectedReservasiId = 0;
+            dgvReservasi.ClearSelection();
         }
 
-        private void label1_Click(object sender, EventArgs e)
+        private bool ValidateInput()
         {
-
+            if (cmbPelangganID.SelectedIndex == -1 || cmbMejaID.SelectedIndex == -1 || cmbStatus.SelectedIndex == -1)
+            {
+                MessageBox.Show("Pelanggan, Meja, dan Status harus dipilih.", "Validasi Gagal", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+            return true;
         }
     }
 }
