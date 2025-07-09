@@ -23,7 +23,7 @@ namespace Project
         public Meja()
         {
             InitializeComponent();
-        }
+        } 
 
         private void Meja_Load(object sender, EventArgs e)
         {

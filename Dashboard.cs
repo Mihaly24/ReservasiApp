@@ -19,7 +19,7 @@ namespace Project
 
         private void Dashboard_Load(object sender, EventArgs e)
         {
-             // Any initialization code when the dashboard loads
+            // Any initialization code when the dashboard loads
         }
 
         private void BtnAdmin_Click(object sender, EventArgs e)

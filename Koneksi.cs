@@ -12,7 +12,7 @@ namespace Project
             try
             {
                 string localIP = GetLocalIPAddress(); // mendeklarasikan ipaddress
-                connectStr = $"Server={localIP};Initial Catalog=ReservasiRestoran;";
+                connectStr = $"Server={localIP};Initial Catalog=ReservasiRestoran;Integrated Security=True;";
 
                 return connectStr;
             }

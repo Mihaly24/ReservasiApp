@@ -35,7 +35,7 @@ namespace Project
                     {
                         connection.Open();
 
-                        
+
                         string roleCheckQuery = @"
                             SELECT CASE
                                 WHEN IS_MEMBER('AdminAppRole') = 1 THEN 'Admin'
