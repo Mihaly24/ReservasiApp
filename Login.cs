@@ -2,12 +2,13 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Windows.Forms;
+using System.Configuration;
 
 namespace Project
 {
     public partial class Login : Form
     {
-        private string baseConnectionString = "Data Source=MIHALY\\FAIRUZ013;Initial Catalog=ReservasiRestoran;";
+        private string baseConnectionString = "Data Source=.;Initial Catalog=ReservasiRestoran;";
 
         public Login()
         {
@@ -35,14 +36,13 @@ namespace Project
                     {
                         connection.Open();
 
-
                         string roleCheckQuery = @"
-                            SELECT CASE
-                                WHEN IS_MEMBER('AdminAppRole') = 1 THEN 'Admin'
-                                WHEN IS_MEMBER('StaffAppRole') = 1 THEN 'Staff'
-                                WHEN IS_MEMBER('PelangganAppRole') = 1 THEN 'Pelanggan'
-                                ELSE NULL
-                            END AS UserRole";
+                    SELECT CASE
+                        WHEN IS_MEMBER('AdminAppRole') = 1 THEN 'Admin'
+                        WHEN IS_MEMBER('StaffAppRole') = 1 THEN 'Staff'
+                        WHEN IS_MEMBER('PelangganAppRole') = 1 THEN 'Pelanggan'
+                        ELSE NULL
+                    END AS UserRole";
 
                         using (SqlCommand cmd = new SqlCommand(roleCheckQuery, connection))
                         {
